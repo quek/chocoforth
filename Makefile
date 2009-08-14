@@ -1,7 +1,6 @@
 .SUFFIXES: .asm
 
-all:
-	./chocoforth
+all: chocoforth
 
 chocoforth: chocoforth.o
 	ld -o $@ $<

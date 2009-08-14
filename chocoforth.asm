@@ -7,9 +7,9 @@
 ;; <<Direct Threaded Code>>
 ;; DOUBLE:
 ;;         PUSHRSP rsi
-;;         mov     rsi,    DOUBLE_code
-;;         NEXT
-;; DOUBLE_code:
+;;         mov     rsi,    .code + 8
+;;         jmp     .code
+;; .code:
 ;;         DUP
 ;;         PLUS
 ;;         EXIT
@@ -43,6 +43,7 @@
 ;;         add     rax,    CELLL
 ;;         mov     rsi,    rax
 ;;         NEXT
+
 bits 64
 %include "syscall.inc"
 
@@ -65,13 +66,32 @@ bits 64
 
 %macro DOCOL 0
         PUSHRSP rsi
-        mov     rsi,    .code + 8
-        jmp     [.code]
+        mov     rsi,    %%code + 8
+        jmp     [%%code]
 section .data
 align 8
-.code:
+%%code:
 %endmacro
 
+        %define link    0
+
+%macro defword 3                ; name flags label
+%strlen namelen %1
+%defstr namestr %1
+section .rodata
+align 8
+global name_%3
+name_%3:
+        dq      link
+        %define link    name_%3
+        db      %2 + namelen
+        db      namestr
+section text
+align   8
+global  %3
+%3:
+        DOCOL
+%endmacro
 
 section .text
 
@@ -100,23 +120,20 @@ say:
         mov     rsi,    r12     ; rsi を復元
         NEXT
 
-hello:
-        DOCOL
+
+        defword "hello", 0, hello
         dq      message
         dq      say
         dq      EXIT
-section .text
 
-double_hello:
-        DOCOL
+        defword "double_hello", 0, double_hello
         dq      hello
         dq      hello
         dq      EXIT
+
+
 section .text
-
-
 global _start
-
 _start:
         cld                              ; DF(ディレクションフラグ)をクリア
 	mov     rbp,    return_stack_top ; リターンスタック初期化
@@ -135,10 +152,6 @@ align 8
 entry_point:
         dq      double_hello
         dq      system_exit
-
-
-	RETURN_STACK_SIZE       EQU     8192
-	BUFFER_SIZE             EQU     4096
 
 
 section .text
@@ -163,6 +176,8 @@ var_HERE:
 
 
 section .bss
+        RETURN_STACK_SIZE       EQU     8192
+	BUFFER_SIZE             EQU     8192
 ;; FORTH return stack.
 align 4096
 return_stack:
