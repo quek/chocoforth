@@ -43,6 +43,7 @@
 ;;         add     rax,    CELLL
 ;;         mov     rsi,    rax
 ;;         NEXT
+bits    64
 
         CELLL   EQU     8
 
@@ -68,7 +69,7 @@ align   8
 EXIT:
         POPRSP  rsi
         NEXT
-        
+
 
 message:
         push    msg
@@ -116,7 +117,9 @@ section .text
 global _start
 
 _start:
-	mov     rbp,    return_stack_top ; Initialise the return stack.
+        cld                              ; DF(ディレクションフラグ)をクリア
+	mov     rbp,    return_stack_top ; リターンスタック初期化
+        call    set_up_data_segment      ; メモリのアロケート
         mov     rsi,    entry_point
         NEXT
 
@@ -135,6 +138,28 @@ entry_point:
 
 	RETURN_STACK_SIZE       EQU     8192
 	BUFFER_SIZE             EQU     4096
+
+
+section .text
+	INITIAL_DATA_SEGMENT_SIZE       EQU     65536
+set_up_data_segment:
+        mov     rax,    12            ; brk
+	xor     rdi,    rdi           ; Call brk(0)
+        syscall
+        ;; Initialise HERE to point at beginning of data segment.
+	mov     [var_HERE],     rax
+        ;; Reserve nn bytes of memory for initial data segment.
+	add     rax,    $INITIAL_DATA_SEGMENT_SIZE
+        mov     rdi,    rax
+	mov     rax,    12
+        syscall
+	ret
+
+section .data
+var_HERE:
+        dq      0
+
+
 
 section .bss
 ;; FORTH return stack.
