@@ -43,7 +43,8 @@
 ;;         add     rax,    CELLL
 ;;         mov     rsi,    rax
 ;;         NEXT
-bits    64
+bits 64
+%include "syscall.inc"
 
         CELLL   EQU     8
 
@@ -61,6 +62,16 @@ bits    64
 	lodsq
 	jmp rax
 %endmacro
+
+%macro DOCOL 0
+        PUSHRSP rsi
+        mov     rsi,    .code + 8
+        jmp     [.code]
+section .data
+align 8
+.code:
+%endmacro
+
 
 section .text
 
@@ -83,31 +94,21 @@ say:
         mov     r12,    rsi     ; rsi を退避
         pop     rdx             ; 文字列の長さ
         pop     rsi             ; 文字列のアドレス
-        mov     rax,    1       ; 出力システムコール
+        mov     rax,    __NR_write ; 出力システムコール
         mov     rdi,    1       ; 標準出力
         syscall                 ; システムコール実行
         mov     rsi,    r12     ; rsi を復元
         NEXT
 
 hello:
-        PUSHRSP rsi
-        mov     rsi,    hello_code + CELLL
-        jmp     [hello_code]
-section .data
-align 8
-hello_code:
+        DOCOL
         dq      message
         dq      say
         dq      EXIT
 section .text
 
 double_hello:
-        PUSHRSP rsi
-        mov     rsi,    double_hello_code + CELLL
-        jmp     [double_hello_code]
-section .data
-align 8
-double_hello_code:
+        DOCOL
         dq      hello
         dq      hello
         dq      EXIT
@@ -143,15 +144,15 @@ entry_point:
 section .text
 	INITIAL_DATA_SEGMENT_SIZE       EQU     65536
 set_up_data_segment:
-        mov     rax,    12            ; brk
-	xor     rdi,    rdi           ; Call brk(0)
+        mov     rax,    __NR_brk ; brk
+	xor     rdi,    rdi      ; Call brk(0)
         syscall
         ;; Initialise HERE to point at beginning of data segment.
 	mov     [var_HERE],     rax
         ;; Reserve nn bytes of memory for initial data segment.
 	add     rax,    $INITIAL_DATA_SEGMENT_SIZE
         mov     rdi,    rax
-	mov     rax,    12
+	mov     rax,    __NR_brk ;brk
         syscall
 	ret
 

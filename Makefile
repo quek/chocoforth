@@ -1,10 +1,17 @@
-chocoforth: chocoforth.o
-	ld -o chocoforth chocoforth.o
-	./chocoforth
-
 .SUFFIXES: .asm
 
+all:
+	./chocoforth
+
+chocoforth: chocoforth.o
+	ld -o $@ $<
+	./$@
+
+
 .asm.o:
-	nasm -f elf64 $<
+	nasm -g -f elf64 -l $*.lst -o $*.o $<
+
+clean:
+	rm -f *~ *.o *.lst chocoforth
 
 chocoforth.o: chocoforth.asm Makefile
