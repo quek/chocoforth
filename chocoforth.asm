@@ -46,7 +46,7 @@ name_%3:
         db      %2
         db      namelen
         db      namestr
-section text
+section .text
 align   8
 global  %3
 %3:
@@ -65,17 +65,33 @@ name_%3:
         db      %2
         db      namelen
         db      namestr
-        section text
+        section .text
         align 8
         global %3
 %3:
+%endmacro
+
+%macro defvar 4                 ; name flags label initial-value
+        defcode %1, %2, %3
+        push    var_%3
+        NEXT
+        section .data
+        align   8
+var_%3:                         ; ここが does に相当するのか？
+        dq      %4
 %endmacro
 
 section .text
 
 align   8
 
-        defcode "EXIT", 0, EXIT
+        defvar  "state",        0,      state,  0
+        defvar  "here",         0,      here,   0
+        defvar  "latest",       0,      latest, name_syscall0
+        defvar  "s0",           0,      sz,     0
+        defvar  "base",         0,      base,   10
+
+        defcode "exit", 0, exit
         POPRSP  rsi
         NEXT
 
@@ -103,12 +119,18 @@ align   8
         defword "hello", 0, hello
         dq      message
         dq      say
-        dq      EXIT
+        dq      exit
 
         defword "double_hello", 0, double_hello
         dq      hello
         dq      hello
-        dq      EXIT
+        dq      exit
+
+        defcode "syscall0", 0, syscall0
+        pop     rax
+        syscall
+        push    rax
+        NEXT
 
 section .text
 global _start
@@ -139,18 +161,13 @@ set_up_data_segment:
 	xor     rdi,    rdi      ; Call brk(0)
         syscall
         ;; Initialise HERE to point at beginning of data segment.
-	mov     [var_HERE],     rax
+	mov     qword [var_here],       rax
         ;; Reserve nn bytes of memory for initial data segment.
 	add     rax,    $INITIAL_DATA_SEGMENT_SIZE
         mov     rdi,    rax
 	mov     rax,    __NR_brk ;brk
         syscall
 	ret
-
-section .data
-var_HERE:
-        dq      0
-
 
 
 section .bss
