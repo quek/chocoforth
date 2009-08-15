@@ -75,20 +75,21 @@ section .text
 
 align   8
 
-EXIT:
+        defcode "EXIT", 0, EXIT
         POPRSP  rsi
         NEXT
 
-
-message:
+        defcode "message", 0, message
         push    msg
         push    len
         NEXT
-system_exit:
+
+        defcode "system_exit", 0, system_exit
 	mov     rax,    60      ; exit システムコール
 	mov     rdi,     0      ; exit コード
 	syscall                 ; システムコール実行
-say:
+
+        defcode "say", 0, say
         mov     r12,    rsi     ; rsi を退避
         pop     rdx             ; 文字列の長さ
         pop     rsi             ; 文字列のアドレス
