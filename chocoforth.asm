@@ -2,47 +2,6 @@
 ;; nasm -f elf64 chocoforth.asm
 ;; ld -s -o chocoforth chocoforth.o
 ;; ./chocoforth
-;;
-;;
-;; <<Direct Threaded Code>>
-;; DOUBLE:
-;;         PUSHRSP rsi
-;;         mov     rsi,    .code + 8
-;;         jmp     .code
-;; .code:
-;;         DUP
-;;         PLUS
-;;         EXIT
-;; DUP:
-;;         mov     rax,    rsp
-;;         push    rax
-;;         NEXT
-;; EXIT:
-;;         POPRSP  rsi
-;;         NEXT
-;;
-;; <<Indirect Threaded Code>>
-;; DOUBLE:
-;;         DOCOL                   ; codeword
-;;         DUP
-;;         PLUS
-;;         EXIT
-;; DUP:
-;;         DUP_code                ; codeword
-;; DUP_code:
-;;         mov     rax,    rsp
-;;         push    rax
-;;         NEXT
-;; EXIT:
-;;         EXIT_code               ; codeword
-;; EXIT_code:
-;;         POPRSP  rsi
-;;         NEXT
-;; DOCOL:
-;;         PUSHRSP rsi
-;;         add     rax,    CELLL
-;;         mov     rsi,    rax
-;;         NEXT
 
 bits 64
 %include "syscall.inc"
@@ -83,7 +42,6 @@ align 8
 global name_%3
 name_%3:
         dq      link
-        %define link    name_%3
         db      %2 + namelen
         db      namestr
 section text
@@ -91,6 +49,7 @@ align   8
 global  %3
 %3:
         DOCOL
+        %define link    name_%3
 %endmacro
 
 section .text
@@ -130,7 +89,6 @@ say:
         dq      hello
         dq      hello
         dq      EXIT
-
 
 section .text
 global _start

@@ -2,3 +2,45 @@ LiSP の息抜きにちょっこと Forth でも作ってみる。
 
 jonesforth
 http://annexia.org/forth
+
+
+<<Direct Threaded Code>>
+DOUBLE:
+        PUSHRSP rsi
+        mov     rsi,    .code + 8
+        jmp     .code
+.code:
+        DUP
+        PLUS
+        EXIT
+DUP:
+        mov     rax,    rsp
+        push    rax
+        NEXT
+EXIT:
+        POPRSP  rsi
+        NEXT
+
+<<Indirect Threaded Code>>
+DOUBLE:
+        DOCOL                   ; codeword
+        DUP
+        PLUS
+        EXIT
+DUP:
+        DUP_code                ; codeword
+DUP_code:
+        mov     rax,    rsp
+        push    rax
+        NEXT
+EXIT:
+        EXIT_code               ; codeword
+EXIT_code:
+        POPRSP  rsi
+        NEXT
+DOCOL:
+        PUSHRSP rsi
+        add     rax,    CELLL
+        mov     rsi,    rax
+        NEXT
+
