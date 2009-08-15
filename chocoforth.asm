@@ -101,7 +101,7 @@ align   8
         NEXT
 
         defcode "system_exit", 0, system_exit
-	mov     rax,    60      ; exit システムコール
+	mov     rax,    __NR_exit ; exit システムコール
 	mov     rdi,     0      ; exit コード
 	syscall                 ; システムコール実行
 
@@ -126,6 +126,14 @@ align   8
         dq      hello
         dq      exit
 
+
+;;        defword "quit", 0, quit
+;;        dq      rz              ; r0
+;;        dq      rspstore        ; rsp!
+;;        dq      interpret       ; interpret
+;;        dq      branch          ; goto interpret(loop)
+;;        dq      2 * CELLL
+;;
         defcode "syscall0", 0, syscall0
         pop     rax
         syscall
@@ -133,6 +141,62 @@ align   8
         NEXT
 
 section .text
+
+_KEY:
+        mov     rbx,    [currkey]
+        cmp     rbx,    [bufftop]
+        jge     .L1
+        xor     rax,    rax
+        mov     al,     [rbx]
+        inc     rbx
+        mov     [currkey],      rbx
+        ret
+.L1:
+        mov     r12,    rsi     ; ris を退避
+        xor     rdi,    rdi     ; 1st param: stdin
+        mov     rsi,    buffer  ; 2nd param: buffer
+        mov     rdx,    BUFFER_SIZE ; 3rd param: max length of buffer
+        mov     rax,    __NR_read   ; syscall: read
+        syscall
+        test    rax,    rax     ; if rax <= 0 then exit
+        jbe     .L2
+        add     rsi,    rax     ; buffer + rax = bufftop
+        mov     [bufftop], rsi
+        mov     rsi,    r12     ; rsi を復元
+        jmp     _KEY
+.L2:
+        mov     rdi,    -1      ; 1st param: exit code
+        mov     rax,    __NR_exit
+        syscall
+
+
+_WORD:
+.L1:
+        call    _KEY            ; get next key, returned in rax
+        cmp     al,     '\\'    ; start of a comment?
+        je      .L3             ; if so, skip the comment
+        cmp     al,     ' '     ; is blank?
+        jbe     .L1             ; if so, keep looking
+        ;; word を word_buffer に
+        mov     rdi, word_buffer
+.L2:
+        stosb
+        call    _KEY
+        cmp     al,     ' '     ; is blank?
+        ja      .L2             ; if not, keep looping
+        ;; ワードとその長さを返す。
+        sub     rdi,    word_buffer
+        mov     rcx,    rdi
+        mov     rdi,    word_buffer
+        ret
+.L3:
+        ;; コメントの読み飛し
+        call    _KEY
+        cmp     al,     '\n'    ; end of line yet?
+        jne     .L3
+        jmp     .L1
+
+
 global _start
 _start:
         cld                              ; DF(ディレクションフラグ)をクリア
@@ -141,17 +205,23 @@ _start:
         mov     rsi,    entry_point
         NEXT
 
-section .data
+
+        section .data
+        align 8
 
 msg:
         db 'Hello World!', 20h
         db 'まみむめも♪', 0ah
 	len equ $ -msg
 
-align 8
 entry_point:
         dq      double_hello
         dq      system_exit
+
+currkey:
+        dq      buffer
+bufftop:
+        dq      buffer
 
 
 section .text
@@ -183,3 +253,6 @@ return_stack_top:               ; Initial top of return stack.
 align 4096
 buffer:
         resb    BUFFER_SIZE
+
+word_buffer:
+	resb     256
