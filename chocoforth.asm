@@ -42,14 +42,33 @@ align 8
 global name_%3
 name_%3:
         dq      link
-        db      %2 + namelen
+        %define link    name_%3
+        db      %2
+        db      namelen
         db      namestr
 section text
 align   8
 global  %3
 %3:
         DOCOL
-        %define link    name_%3
+%endmacro
+
+%macro defcode 3                ; name flags label
+        %strlen namelen %1
+        %defstr namestr %1
+        section .rodata
+        align 8
+        global name_%3
+name_%3:
+        dq link
+        %define link name_%3
+        db      %2
+        db      namelen
+        db      namestr
+        section text
+        align 8
+        global %3
+%3:
 %endmacro
 
 section .text
