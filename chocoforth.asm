@@ -32,6 +32,9 @@ align 8
 %%code:
 %endmacro
 
+        F_IMMED         equ     0x80
+	F_HIDDEN        equ     0x20
+
         %define link    0
 
 %macro defword 3                ; name flags label
@@ -81,6 +84,12 @@ var_%3:                         ; ここが does に相当するのか？
         dq      %4
 %endmacro
 
+%macro defconst 4               ; name flags label, value
+        defcode %1, %2, %3
+        push    %4
+        NEXT
+%endmacro
+
 section .text
 
 align   8
@@ -90,6 +99,182 @@ align   8
         defvar  "latest",       0,      latest, name_syscall0
         defvar  "s0",           0,      sz,     0
         defvar  "base",         0,      base,   10
+
+        defconst        "r0",           0,      rz,             return_stack_top
+        defconst        "f_immed",      0,      f_immed,        F_IMMED
+        defconst        "f_hidden",     0,      f_hidden,       F_HIDDEN
+
+        defcode "key",  0,      key
+        call    _KEY
+        push    rax
+        NEXT
+_KEY:
+        mov     rbx,    [currkey]
+        cmp     rbx,    [bufftop]
+        jge     .L1
+        xor     rax,    rax
+        mov     al,     [rbx]
+        inc     rbx
+        mov     [currkey],      rbx
+        ret
+.L1:
+        mov     r12,    rsi     ; ris を退避
+        xor     rdi,    rdi     ; 1st param: stdin
+        mov     rsi,    buffer  ; 2nd param: buffer
+        mov     rdx,    BUFFER_SIZE ; 3rd param: max length of buffer
+        mov     rax,    __NR_read   ; syscall: read
+        syscall
+        test    rax,    rax     ; if rax <= 0 then exit
+        jbe     .L2
+        add     rsi,    rax     ; buffer + rax = bufftop
+        mov     [bufftop], rsi
+        mov     rsi,    r12     ; rsi を復元
+        jmp     _KEY
+.L2:
+        mov     rdi,    -1      ; 1st param: exit code
+        mov     rax,    __NR_exit
+        syscall
+
+
+        defcode "word", 0,      _WORD
+        call    __WORD
+        push     rdi            ; push word name address
+        push    rcx             ; push word name length
+__WORD:
+.L1:
+        call    _KEY            ; get next key, returned in rax
+        cmp     rax,    '\\'    ; start of a comment?
+        je      .L3             ; if so, skip the comment
+        cmp     rax,    ' '     ; is blank?
+        jbe     .L1             ; if so, keep looking
+        ;; word を word_buffer に
+        mov     rdi, word_buffer
+.L2:
+        stosb
+        call    _KEY
+        cmp     al,     ' '     ; is blank?
+        ja      .L2             ; if not, keep looping
+        ;; ワードとその長さを返す。
+        sub     rdi,    word_buffer
+        mov     rcx,    rdi
+        mov     rdi,    word_buffer
+        ret
+.L3:
+        ;; コメントの読み飛し
+        call    _KEY
+        cmp     rax,    '\n'    ; end of line yet?
+        jne     .L3
+        jmp     .L1
+
+        defcode "find", 0, find
+        pop     rcx             ; rcx = length
+        pop     rdi             ; rdi = address
+        call    _FIND
+        push    rax             ; rax = address of dictionary entry (or NULL)
+        NEXT
+_FIND:
+        ;; rcx = length, rdi = address
+        mov     r12,    rsi     ; rsi を退避
+        mov     rdx,    var_latest ; latest points to name header of the latest word in the dictionary
+.LOOP:
+        test    rdx,    rdx   ; NULL pointer? (end of the linked list)
+        je      .NOT_FOUND
+        ;; compare the length
+        xor     rax,    rax
+        mov     al,     [rdx+8]  ; flags
+        and     al,     F_HIDDEN ; hidden?
+        jnz     .NEXT_LINK       ; if so, next word
+        cmp     al,     cl       ; Length is same?
+        jne     .NEXT_LINK       ; if not same, next link
+        ;; compare the string
+        push    rcx
+        push    rdi
+        lea     rsi,    [rdx+10] ; Dictionary string we are checking against.
+        repe    cmpsb            ; Compare the string
+        pop     rdi
+        pop     rcx
+        jne     .NOT_FOUND      ; Not the same.
+        ;; The string are the same - return the header poiner in rax
+        mov     rsi,    r12     ; rsi を復元
+        mov     rax,    rdx
+        ret
+.NEXT_LINK:
+        mov     rdx,    [rdx]   ; Move back through the link field to the previout word
+        jmp     .LOOP           ; ... and loop.
+.NOT_FOUND:
+        ;; Not found.
+        mov     rsi,    r12     ; rsi を復元
+        xor     rax,    rax     ; Return zero to indicate not found.
+        ret
+
+        defcode ">cfa", 0, TCFA
+        pop     rdi             ; dictionary entry point
+        call    _TCFA
+        push    rdi             ; codeword
+        NEXT
+_TCFA:
+        ;; rdi = ワードの先頭のポインタ(link を指している)
+        xor     rax,    rax
+        add     rdi,    9       ; link と flags をスキップ
+        mov     al,     [rdi]   ; ワード名の長さを取得
+        add     rdi,    rax     ; ワード名をスキップ
+        add     rdi,    7       ; 8バイトアライン
+        and     rdi,    ~7
+        ret
+
+        defcode "number", 0, number
+        pop     rcx             ; 文字列長
+        pop     rdi             ; 文字列のアドレス
+        call    _NUMBER
+        push    rax             ; パースした数値
+        push    rcx             ; パースできなかった文字数(正常時は0)
+        NEXT
+_NUMBER:
+        xor     rax,    rax
+        xor     rbx,    rbx
+        test    rcx,    rcx     ; 文字列長0なら0をリターンする。
+        jz      .RET
+        mov     rdx,    var_base ; 基数(n進数)を取得
+        ;; - で始まるかチェック
+        mov     bl,     [rdi]   ; 先頭の1文字
+        inc     rdi
+        push    rax             ; 0 をスタックにプッシュ
+        cmp     bl,     '-'     ; 負？
+        jnz     .PARSE_NUM      ; 正の数値のパース
+        pop     rax
+        push    rbx             ; 負であることを示すためにスタックにプッシュ
+        dec     rcx
+        jnz     .LOOP
+        pop     rbx             ; - だけの場合はエラー
+        mov     rcx,    1
+        ret
+.LOOP:
+        imul    rax,    rdx     ; rax *= 基数（var_base）
+        mov     bl,     [rdi]   ; bl = 次の1文字
+        inc     rdi
+.PARSE_NUM:
+        sub     bl,     '0'     ; < '0'?
+        jb      .RESULT
+        cmp     bl,     10      ; <= '9'?
+        jb      .VALID_NUM
+        sub     bl,     17      ; < 'A'? (17 は 'A' - '0')
+        jb      .RESULT
+        add     bl,     10
+.VALID_NUM:
+        cmp     bl,     dl      ; >= BASE?
+        jge     .RESULT
+        ;; rax に足して次の文字へ
+        add     rax,    rbx
+        dec     rcx
+        jnz     .LOOP
+.RESULT:
+        pop     rbx             ; 負か否か
+        test    rbx,    rbx     ; 0 でない場合は負
+        jz      .RET            ; 正の場合
+        neg     rax             ; 負の場合
+.RET:
+        ret
+
 
         defcode "exit", 0, exit
         POPRSP  rsi
@@ -133,69 +318,37 @@ align   8
 ;;        dq      interpret       ; interpret
 ;;        dq      branch          ; goto interpret(loop)
 ;;        dq      2 * CELLL
-;;
+
+        defcode "interpret", 0, interpret
+        call    __WORD           ; Returns rcx = length, rdi = pointer to word.
+        xor     rax,    rax
+        mov     rax,    interpret_is_lit ; Not a litral number
+        call    _FIND                    ; Returns rax = pointer to header or 0 if not found.
+        test    rax,    rax              ; Found?
+        jz      .NOT_FOUND
+        ;; In the dirctionary. Is it an IMMEDIATE word?
+        mov     rdi,    rax
+        mov     al,     [rdi + 4] ; Get flags.
+        push    rax               ; Just save it for new.
+        call    _TCFA
+.NOT_FOUND:
+        ;; Not in the dirctionray (net a word) so assume it's a literal number.
+        
+
+
         defcode "syscall0", 0, syscall0
         pop     rax
         syscall
         push    rax
         NEXT
 
+        section .data
+        align   8
+interpret_is_lit:
+        dq      0
+
+
 section .text
-
-_KEY:
-        mov     rbx,    [currkey]
-        cmp     rbx,    [bufftop]
-        jge     .L1
-        xor     rax,    rax
-        mov     al,     [rbx]
-        inc     rbx
-        mov     [currkey],      rbx
-        ret
-.L1:
-        mov     r12,    rsi     ; ris を退避
-        xor     rdi,    rdi     ; 1st param: stdin
-        mov     rsi,    buffer  ; 2nd param: buffer
-        mov     rdx,    BUFFER_SIZE ; 3rd param: max length of buffer
-        mov     rax,    __NR_read   ; syscall: read
-        syscall
-        test    rax,    rax     ; if rax <= 0 then exit
-        jbe     .L2
-        add     rsi,    rax     ; buffer + rax = bufftop
-        mov     [bufftop], rsi
-        mov     rsi,    r12     ; rsi を復元
-        jmp     _KEY
-.L2:
-        mov     rdi,    -1      ; 1st param: exit code
-        mov     rax,    __NR_exit
-        syscall
-
-
-_WORD:
-.L1:
-        call    _KEY            ; get next key, returned in rax
-        cmp     al,     '\\'    ; start of a comment?
-        je      .L3             ; if so, skip the comment
-        cmp     al,     ' '     ; is blank?
-        jbe     .L1             ; if so, keep looking
-        ;; word を word_buffer に
-        mov     rdi, word_buffer
-.L2:
-        stosb
-        call    _KEY
-        cmp     al,     ' '     ; is blank?
-        ja      .L2             ; if not, keep looping
-        ;; ワードとその長さを返す。
-        sub     rdi,    word_buffer
-        mov     rcx,    rdi
-        mov     rdi,    word_buffer
-        ret
-.L3:
-        ;; コメントの読み飛し
-        call    _KEY
-        cmp     al,     '\n'    ; end of line yet?
-        jne     .L3
-        jmp     .L1
-
 
 global _start
 _start:
