@@ -4,6 +4,24 @@ jonesforth
 http://annexia.org/forth
 
 
+%rax Return value
+%rbx Callee saved
+%rcx 4th argument
+%rdx 3rd argument
+%rsi 2nd argument
+%rdi 1st argument
+%rbp Callee saved
+%rsp Stack pointer
+%r8  5th argument
+%r9  6th argument
+%r10 Callee saved
+%r11 Used for linking
+%r12 Unused for C
+%r13 Callee saved
+%r14 Callee saved
+%r15 Callee saved
+
+
 <<Direct Threaded Code>>
 DOUBLE:
         PUSHRSP rsi

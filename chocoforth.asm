@@ -27,7 +27,6 @@ bits 64
         PUSHRSP rsi
         mov     rsi,    %%code + 8
         jmp     [%%code]
-section .data
 align 8
 %%code:
 %endmacro
@@ -39,7 +38,6 @@ align 8
 
 %macro defword 3                ; name flags label
 %strlen namelen %1
-%defstr namestr %1
 section .rodata
 align 8
 global name_%3
@@ -48,8 +46,7 @@ name_%3:
         %define link    name_%3
         db      %2
         db      namelen
-        db      namestr
-section .text
+        db      %1
 align   8
 global  %3
 %3:
@@ -58,7 +55,6 @@ global  %3
 
 %macro defcode 3                ; name flags label
         %strlen namelen %1
-        %defstr namestr %1
         section .rodata
         align 8
         global name_%3
@@ -67,7 +63,7 @@ name_%3:
         %define link name_%3
         db      %2
         db      namelen
-        db      namestr
+        db      %1
         section .text
         align 8
         global %3
@@ -176,7 +172,7 @@ __WORD:
 _FIND:
         ;; rcx = length, rdi = address
         mov     r12,    rsi     ; rsi を退避
-        mov     rdx,    var_latest ; latest points to name header of the latest word in the dictionary
+        mov     rdx,    [var_latest] ; latest points to name header of the latest word in the dictionary
 .LOOP:
         test    rdx,    rdx   ; NULL pointer? (end of the linked list)
         je      .NOT_FOUND
@@ -185,6 +181,7 @@ _FIND:
         mov     al,     [rdx+8]  ; flags
         and     al,     F_HIDDEN ; hidden?
         jnz     .NEXT_LINK       ; if so, next word
+        mov     al,     [rdx+9]  ; Get length.
         cmp     al,     cl       ; Length is same?
         jne     .NEXT_LINK       ; if not same, next link
         ;; compare the string
@@ -194,7 +191,7 @@ _FIND:
         repe    cmpsb            ; Compare the string
         pop     rdi
         pop     rcx
-        jne     .NOT_FOUND      ; Not the same.
+        jne     .NEXT_LINK      ; Not the same.
         ;; The string are the same - return the header poiner in rax
         mov     rsi,    r12     ; rsi を復元
         mov     rax,    rdx
@@ -216,12 +213,9 @@ _FIND:
 _TCFA:
         ;; rdi = ワードの先頭のポインタ(link を指している)
         xor     rax,    rax
-        add     rdi,    8       ; link をスキップ
-        mov     al,     [rdi]   ; flags を取得
-        inc     rdi
-        xor     rbx,    rbx
-        mov     bl,     [rdi]   ; ワード名の長さを取得
-        add     rdi,    rbx     ; ワード名をスキップ
+        add     rdi,    9       ; link と flags をスキップ
+        mov     al,     [rdi]   ; ワード名の長さを取得
+        add     rdi,    rax     ; ワード名をスキップ
         add     rdi,    7       ; 8バイトアライン
         and     rdi,    ~7
         ret
@@ -238,7 +232,7 @@ _NUMBER:
         xor     rbx,    rbx
         test    rcx,    rcx     ; 文字列長0なら0をリターンする。
         jz      .RET
-        mov     rdx,    var_base ; 基数(n進数)を取得
+        mov     rdx,    [var_base] ; 基数(n進数)を取得
         ;; - で始まるかチェック
         mov     bl,     [rdi]   ; 先頭の1文字
         inc     rdi
@@ -400,11 +394,14 @@ _COMMA:
         jz      .NOT_FOUND
         ;; In the dirctionary. Is it an IMMEDIATE word?
         mov     rdi,    rax
-        mov     al,     [rdi + 4] ; Get flags.
+        xor     rax,    rax
+        mov     al,     [rdi + 8] ; Get flags.
+        push    rax
         push    rax               ; Just save it for new.
         call    _TCFA             ; Returns rax = flags
         pop     rax
         and     rax,    F_IMMED ; IMMED フラグがセットされている？
+        mov     rax,    rdi
         jnz     .EXECUTE        ; IMMED なら実行
         jmp     .FOUND
 .NOT_FOUND:
@@ -416,7 +413,7 @@ _COMMA:
         mov     rbx,    rax
         mov     rax,    lit
 .FOUND:
-        mov     rdx,    var_state
+        mov     rdx,    [var_state]
         test    rdx,    rdx
         jz      .EXECUTE
         ;; コンパイル
@@ -434,7 +431,7 @@ _COMMA:
         test    rcx,    rcx
         jnz     .LITERAL        ; リテラルの場合
         ;; リテラルでないのでジャンプ
-        jmp     [rax]
+        jmp     rax
 .LITERAL:
         ;; リテラルの場合はスタックにプッシュして NEXT
         push    rbx
