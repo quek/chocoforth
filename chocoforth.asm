@@ -111,26 +111,27 @@ align   8
 _KEY:
         mov     rbx,    [currkey]
         cmp     rbx,    [bufftop]
-        jge     .L1
+        jge     .READ
         xor     rax,    rax
         mov     al,     [rbx]
         inc     rbx
         mov     [currkey],      rbx
         ret
-.L1:
-        mov     r12,    rsi     ; ris を退避
+.READ:
+        push    rsi             ; ris を退避
         xor     rdi,    rdi     ; 1st param: stdin
         mov     rsi,    buffer  ; 2nd param: buffer
+        mov     [currkey], rsi
         mov     rdx,    BUFFER_SIZE ; 3rd param: max length of buffer
         mov     rax,    __NR_read   ; syscall: read
         syscall
         test    rax,    rax     ; if rax <= 0 then exit
-        jbe     .L2
+        jbe     .EOF
         add     rsi,    rax     ; buffer + rax = bufftop
         mov     [bufftop], rsi
-        mov     rsi,    r12     ; rsi を復元
+        pop     rsi             ; rsi を復元
         jmp     _KEY
-.L2:
+.EOF:
         mov     rdi,    -1      ; 1st param: exit code
         mov     rax,    __NR_exit
         syscall
@@ -215,9 +216,12 @@ _FIND:
 _TCFA:
         ;; rdi = ワードの先頭のポインタ(link を指している)
         xor     rax,    rax
-        add     rdi,    9       ; link と flags をスキップ
-        mov     al,     [rdi]   ; ワード名の長さを取得
-        add     rdi,    rax     ; ワード名をスキップ
+        add     rdi,    8       ; link をスキップ
+        mov     al,     [rdi]   ; flags を取得
+        inc     rdi
+        xor     rbx,    rbx
+        mov     bl,     [rdi]   ; ワード名の長さを取得
+        add     rdi,    rbx     ; ワード名をスキップ
         add     rdi,    7       ; 8バイトアライン
         and     rdi,    ~7
         ret
@@ -275,11 +279,79 @@ _NUMBER:
 .RET:
         ret
 
+        defcode "create", 0, create
+        pop     rcx             ; rcx = length
+        pop     rdx             ; rdx = address of name
+        mov     rdi,    [var_here]
+        mov     rax,    [var_latest]
+        stosq                   ; link を設定
+        mov     cl,     al
+        stosb                   ; length を設定
+        push    rsi
+        mov     rsi,    rbx
+        rep     movsb           ; name を設定
+        pop     rsi
+        add     rdi,    7       ; align 8
+        and     rdi,    ~7
+        mov     rax,    [var_here]
+        mov     [var_latest],   rax
+        mov     [var_here],     rdi
+        NEXT
+
+        defcode "lit", 0, lit
+        lodsq                   ; rax = [rsi++]
+        push    rax             ; リテラルをスタックにプッシュ
+        NEXT
+
+        defcode ",", 0, comma
+        pop     rax             ; Code pointer to store.
+        call    _COMMA
+        NEXT
+_COMMA:
+        mov     rdi,    [var_here]   ; HERE
+        stosq                        ; Store it.
+        mov     [var_here],      rdi ; Update HERE(incremented)
+        ret
+
+        defcode ">r",   0,      tor
+        pop     rax
+        PUSHRSP rax
+        NEXT
+
+        defcode "r>",   0,      FROMR
+        POPRSP  rax
+        push    rax
+        NEXT
+
+        defcode "rsp@", 0,      rspfetch
+        push    rbp
+        NEXT
+
+        defcode "rsp!", 0,      rspstore
+        pop     rbp
+        NEXT
+
+        defcode "rdpro",        0,      rdrop
+        add     rbp,    CELLL
+        NEXT
+
+        defcode "branch",       0,      branch
+        add     rsi,    [rsi]   ; オフセットを instruction pointer に足す。
+        NEXT
+
+        defcode "0branch",      0,      zbranch
+        pop     rax
+        test    rax,    rax
+        jz      branch          ; 0 なら branch へ
+        lodsq                   ; 0 でないならオフセットをスキップする
+        NEXT
 
         defcode "exit", 0, exit
         POPRSP  rsi
         NEXT
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; テスト用コード
         defcode "message", 0, message
         push    msg
         push    len
@@ -312,17 +384,17 @@ _NUMBER:
         dq      exit
 
 
-;;        defword "quit", 0, quit
-;;        dq      rz              ; r0
-;;        dq      rspstore        ; rsp!
-;;        dq      interpret       ; interpret
-;;        dq      branch          ; goto interpret(loop)
-;;        dq      2 * CELLL
+        defword "quit", 0, quit
+        dq      rz              ; r0
+        dq      rspstore        ; rsp!
+        dq      interpret       ; interpret
+        dq      branch          ; goto interpret(loop)
+        dq      -2 * CELLL
 
         defcode "interpret", 0, interpret
         call    __WORD           ; Returns rcx = length, rdi = pointer to word.
         xor     rax,    rax
-        mov     rax,    interpret_is_lit ; Not a litral number
+        mov     [interpret_is_lit],     rax ; interpret_is_lit をリセット（0）
         call    _FIND                    ; Returns rax = pointer to header or 0 if not found.
         test    rax,    rax              ; Found?
         jz      .NOT_FOUND
@@ -330,11 +402,64 @@ _NUMBER:
         mov     rdi,    rax
         mov     al,     [rdi + 4] ; Get flags.
         push    rax               ; Just save it for new.
-        call    _TCFA
+        call    _TCFA             ; Returns rax = flags
+        pop     rax
+        and     rax,    F_IMMED ; IMMED フラグがセットされている？
+        jnz     .EXECUTE        ; IMMED なら実行
+        jmp     .FOUND
 .NOT_FOUND:
         ;; Not in the dirctionray (net a word) so assume it's a literal number.
-        
-
+        inc     qword [interpret_is_lit]
+        call    _NUMBER         ; Returns rax = parsed number, rcx > 0 is error
+        test    rcx,    rcx
+        jnz     .PARSE_NUMBER_ERROR
+        mov     rbx,    rax
+        mov     rax,    lit
+.FOUND:
+        mov     rdx,    var_state
+        test    rdx,    rdx
+        jz      .EXECUTE
+        ;; コンパイル
+        call    _COMMA
+        mov     rcx,    [interpret_is_lit]
+        test    rcx,    rcx     ; リテラル?
+        jz      .END
+        mov     rbx,    rax     ; LIT に続いてリテラル（数値）を ,
+        call    _COMMA
+.END:
+        NEXT
+.EXECUTE:
+        ;; Executing - run it!
+        mov     rcx,    [interpret_is_lit] ; リテラル？
+        test    rcx,    rcx
+        jnz     .LITERAL        ; リテラルの場合
+        ;; リテラルでないのでジャンプ
+        jmp     [rax]
+.LITERAL:
+        ;; リテラルの場合はスタックにプッシュして NEXT
+        push    rbx
+        NEXT
+.PARSE_NUMBER_ERROR:
+        ;; _NUMBER でのパースエラー
+        push    rsi
+        mov     rbx,    2       ; 1st param: stderr
+        mov     rsi,    errmsg  ; 2nd param: error message
+        mov     rdx,    errmsg_len ; 3rd param: error message length
+        mov     rax,    __NR_write ; write syscall
+        syscall
+        ;; エラーは currkey の直前で発生した
+        mov     rsi,    currkey
+        mov     rdx,    rsi
+        sub     rdx,    buffer  ; rdx = currkey - buffer
+        sub     rsi,    rdx
+        mov     rax,    __NR_write
+        syscall
+        mov     rsi,    errmsgnl
+        mov     rdx,    1
+        mov     rax,    __NR_write
+        syscall
+        pop     rsi
+        NEXT
 
         defcode "syscall0", 0, syscall0
         pop     rax
@@ -355,7 +480,8 @@ _start:
         cld                              ; DF(ディレクションフラグ)をクリア
 	mov     rbp,    return_stack_top ; リターンスタック初期化
         call    set_up_data_segment      ; メモリのアロケート
-        mov     rsi,    entry_point
+        ;; mov     rsi,    entry_point
+        mov     rsi,    cold_start
         NEXT
 
 
@@ -367,9 +493,18 @@ msg:
         db 'まみむめも♪', 0ah
 	len equ $ -msg
 
+errmsg:
+        db "パース エラー: "
+        errmsg_len      equ $ - errmsg
+errmsgnl:
+        db      0ah
+
 entry_point:
         dq      double_hello
         dq      system_exit
+
+cold_start:
+        dq      quit
 
 currkey:
         dq      buffer

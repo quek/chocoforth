@@ -1,11 +1,12 @@
 .SUFFIXES: .asm
 
+.PHONY:	chocoforth
+
 all: chocoforth
+	./$< < chocoforth.fs
 
 chocoforth: chocoforth.o
 	ld -o $@ $<
-	./$@
-
 
 .asm.o:
 	nasm -g -f elf64 -l $*.lst -o $*.o $<
