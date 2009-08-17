@@ -47,7 +47,7 @@ name_%3:
         db      %2
         db      namelen
         db      %1
-align   8
+        align   8
 global  %3
 %3:
         DOCOL
@@ -171,7 +171,7 @@ __WORD:
         NEXT
 _FIND:
         ;; rcx = length, rdi = address
-        mov     r12,    rsi     ; rsi を退避
+        push    rsi             ; rsi を退避
         mov     rdx,    [var_latest] ; latest points to name header of the latest word in the dictionary
 .LOOP:
         test    rdx,    rdx   ; NULL pointer? (end of the linked list)
@@ -193,7 +193,7 @@ _FIND:
         pop     rcx
         jne     .NEXT_LINK      ; Not the same.
         ;; The string are the same - return the header poiner in rax
-        mov     rsi,    r12     ; rsi を復元
+        pop     rsi             ; rsi を復元
         mov     rax,    rdx
         ret
 .NEXT_LINK:
@@ -201,7 +201,7 @@ _FIND:
         jmp     .LOOP           ; ... and loop.
 .NOT_FOUND:
         ;; Not found.
-        mov     rsi,    r12     ; rsi を復元
+        pop     rsi             ; rsi を復元
         xor     rax,    rax     ; Return zero to indicate not found.
         ret
 
@@ -357,13 +357,13 @@ _COMMA:
 	syscall                 ; システムコール実行
 
         defcode "say", 0, say
-        mov     r12,    rsi     ; rsi を退避
-        pop     rdx             ; 文字列の長さ
-        pop     rsi             ; 文字列のアドレス
+        mov     r13,    rsi        ; rsi を退避
+        pop     rdx                ; 文字列の長さ
+        pop     rsi                ; 文字列のアドレス
         mov     rax,    __NR_write ; 出力システムコール
-        mov     rdi,    1       ; 標準出力
-        syscall                 ; システムコール実行
-        mov     rsi,    r12     ; rsi を復元
+        mov     rdi,    1          ; 標準出力
+        syscall                    ; システムコール実行
+        mov     rsi,    r13        ; rsi を復元
         NEXT
 
 
