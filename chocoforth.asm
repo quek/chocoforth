@@ -64,7 +64,7 @@ name_%3:
         db      %2
         db      namelen
         db      %1
-        section .text
+        ;;section .text
         align 8
         global %3
 %3:
@@ -76,7 +76,7 @@ name_%3:
         NEXT
         section .data
         align   8
-var_%3:                         ; ここが does に相当するのか？
+var_%3:                         ; ここが does に相当するのか？ じゃないね。
         dq      %4
 %endmacro
 
@@ -99,6 +99,235 @@ align   8
         defconst        "r0",           0,      rz,             return_stack_top
         defconst        "f_immed",      0,      f_immed,        F_IMMED
         defconst        "f_hidden",     0,      f_hidden,       F_HIDDEN
+
+        defcode "drop", 0,      drop
+        pop     rax
+        NEXT
+
+        defcode "swap", 0,      swap
+        pop     rax
+        pop     rbx
+        push    rax
+        push    rbx
+        NEXT
+
+        defcode "dup",  0,      dup
+        mov     rax,    [rsp]
+        push    rax
+        NEXT
+
+        defcode "over", 0,      over
+        mov     rax,    [rsp+CELLL]
+        push    rax
+        NEXT
+
+        ;; ( x1 x2 x3 -- x2 x3 x1 )
+        defcode "rot",  0,      rot
+        pop     rax
+        pop     rbx
+        pop     rcx
+        push    rbx
+        push    rax
+        push    rcx
+        NEXT
+
+        ;; ( x1 x2 x3 -- x3 x1 x2 )
+        defcode "-rot", 0,      nrot
+        pop     rax
+        pop     rbx
+        pop     rcx
+        push    rax
+        push    rcx
+        push    rbx
+        NEXT
+
+        defcode "2drop",        0,      twodrop
+        pop     rax
+        pop     rax
+        NEXT
+
+        defcode "2dup", 0,      twodup
+        mov     rax,    [rsp]
+        mov     rbx,    [rsp + CELLL]
+        push    rbx
+        push    rax
+        NEXT
+
+        defcode "2swap",        0,      twoswap
+        pop     rax
+        pop     rbx
+        pop     rcx
+        pop     rdx
+        push    rbx
+        push    rax
+        push     rdx
+        push     rcx
+        NEXT
+
+        defcode "?dup", 0,      qdup
+        mov     rax,    [rsp]
+        test    rax,    rax
+        jz      .L1
+        push    rax
+.L1:
+        NEXT
+
+        defcode "1+",   0,      incr
+        inc     qword [rsp]
+        NEXT
+
+        defcode "1-",   0,      decr
+        dec     qword [rsp]
+        NEXT
+
+        defcode "+",    0,      add
+        pop     rax
+        add     [rsp],    rax
+        NEXT
+
+        defcode "-",    0,      sub
+        pop     rax
+        sub     [rsp],  rax
+        NEXT
+
+        defcode "*",    0,      mul
+        pop     rax
+        pop     rbx
+        imul    rax,    rbx
+        push    rax
+        NEXT
+
+        defcode "/mod", 0,      divmod
+        xor     rdx,    rdx
+        pop     rbx
+        pop     rax
+        idiv    rbx
+        push    rbx             ; 剰余 remainder
+        push    rax             ; 商   quotient
+        NEXT
+
+        defcode "=",    0,      equ
+        pop     rax
+        pop     rbx
+        cmp     rax,    rbx
+        sete    al              ; al = 1 if ZF=1
+        movzx   rax,    al      ; al -> rax
+        push    rax
+        NEXT
+
+        defcode "<>",   0,      nequ
+        pop     rax
+        pop     rbx
+        cmp     rax,    rbx
+        setne   al
+        movzx   rax,    al
+        push    rax
+        NEXT
+
+        defcode "<",    0,      lt
+        pop     rax
+        pop     rbx
+        cmp     rax,    rbx
+        setl    al
+        movzx   rax,    al
+        push    rax
+        NEXT
+
+        defcode ">",    0,      gt
+        pop     rax
+        pop     rbx
+        cmp     rax,    rbx
+        setg    al
+        movzx   rax,    al
+        push    rax
+        NEXT
+
+        defcode "<=",   0,      le
+        pop     rax
+        pop     rbx
+        cmp     rax,    rbx
+        setle   al
+        movzx   rax,    al
+        push    rax
+        NEXT
+
+        defcode ">=",   0,      ge
+        pop     rax
+        pop     rbx
+        cmp     rax,    rbx
+        setge   al
+        movzx   rax,    al
+        push    rax
+        NEXT
+
+        defcode "0=",   0,      zequ
+        pop     rax
+        test    rax,    rax
+        setz    al
+        movzx   rax,    al
+        push    rax
+        NEXT
+
+        defcode "0<>",  0,      nzequ
+        pop     rax
+        test    rax,    rax
+        setnz   al
+        movzx   rax,    al
+        push    rax
+        NEXT
+
+        defcode "0<",   0,      zlt
+        pop     rax
+        test    rax,    rax
+        setl    al
+        movzx   rax,    al
+        push    rax
+        NEXT
+
+        defcode "0>",   0,      zgt
+        pop     rax
+        test    rax,    rax
+        setg    al
+        movzx   rax,    al
+        push    rax
+        NEXT
+
+        defcode "0<=",  0,      zle
+        pop     rax
+        test    rax,    rax
+        setle   al
+        movzx   rax,    al
+        push    rax
+        NEXT
+
+        defcode "0>=",  0,      zge
+        pop     rax
+        test    rax,    rax
+        setge   al
+        movzx   rax,    al
+        push    rax
+        NEXT
+
+        defcode "and",  0,      and
+        pop     rax
+        and     [rsp],  rax
+        NEXT
+
+        defcode "or",   0,      or
+        pop     rax
+        or      [rsp],  rax
+        NEXT
+
+        defcode "xor",  0,      xor
+        pop     rax
+        xor     [rsp],  rax
+        NEXT
+
+        defcode "invert",       0,      invert
+        not     qword [rsp]
+        NEXT
+
+;;; TODO LIT から
 
         defcode "key",  0,      key
         call    _KEY
