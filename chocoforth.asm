@@ -24,11 +24,12 @@ bits 64
 %endmacro
 
 %macro DOCOL 0
-        PUSHRSP rsi
-        mov     rsi,    %%code + 8
-        jmp     [%%code]
-align 8
-%%code:
+        nop
+        nop
+        nop
+        call    _ENTER
+        ;;jmp     _ENTER
+        ;;align 8
 %endmacro
 
         F_IMMED         equ     0x80
@@ -90,6 +91,18 @@ section .text
 
 align   8
 
+_ENTER:
+        PUSHRSP rsi
+        pop     rsi
+        NEXT
+;;        PUSHRSP rsi
+;;        add     rax,    CELLL
+;;        mov     rbx,    rax
+;;        add     rbx,    CELLL
+;;        mov     rsi,    rbx
+;;        jmp     [rax]
+;;
+
         defvar  "state",        0,      state,  0
         defvar  "here",         0,      here,   0
         defvar  "latest",       0,      latest, name_syscall0
@@ -99,6 +112,23 @@ align   8
         defconst        "r0",           0,      rz,             return_stack_top
         defconst        "f_immed",      0,      f_immed,        F_IMMED
         defconst        "f_hidden",     0,      f_hidden,       F_HIDDEN
+
+        defconst "sys_exit", 0, sys_exit, __NR_exit
+	defconst "sys_open", 0, sys_open, __NR_open
+	defconst "sys_close", 0, sys_close, __NR_close
+	defconst "sys_read", 0, sys_read, __NR_read
+	defconst "sys_write", 0, sys_write, __NR_write
+	defconst "sys_creat", 0, sys_creat, __NR_creat
+	defconst "sys_brk", 0, sys_brk, __NR_brk
+
+	defconst "o_rdonly", 0, __o_rdonly, 0
+	defconst "o_wronly", 0, __o_wronly, 1
+	defconst "o_rdwr", 0, __o_rdwr, 2
+	defconst "o_creat", 0, __o_creat, 0100
+	defconst "o_excl", 0, __o_excl, 0200
+	defconst "o_trunc", 0, __o_trunc, 01000
+	defconst "o_append", 0, __o_append, 02000
+	defconst "o_nonblock", 0, __o_nonblock, 04000
 
         defcode "drop", 0,      drop
         pop     rax
@@ -327,7 +357,89 @@ align   8
         not     qword [rsp]
         NEXT
 
-;;; TODO LIT から
+        defcode "lit", 0, lit
+        lodsq                   ; rax = [rsi++]
+        push    rax             ; リテラルをスタックにプッシュ
+        NEXT
+
+        defcode "!",    0,      store
+        pop     rbx
+        pop     rax
+        mov     [rbx],  rax
+        NEXT
+
+        defcode "@",    0,      fetch
+        pop     rbx
+        mov     rax,    [rbx]
+        push    rax
+        NEXT
+
+        defcode "+!",   0,      addstore
+        pop     rbx
+        pop     rax
+        add     [rbx],  rax
+        NEXT
+
+        defcode "-!",   0,      substore
+        pop     rbx
+        pop     rax
+        sub     [rbx],  rax
+        NEXT
+
+        defcode "c!",   0,      storebyte
+        pop     rbx
+        pop     rax
+        mov     byte [rbx],  al
+        NEXT
+
+        defcode "c@",   0,      fetchbyte
+        pop     rbx
+        xor     rax,    rax
+        mov     al,     [rbx]
+        NEXT
+
+        defcode ">r",   0,      tor
+        pop     rax
+        PUSHRSP rax
+        NEXT
+
+        defcode "r>",   0,      FROMR
+        POPRSP  rax
+        push    rax
+        NEXT
+
+        defcode "rsp@", 0,      rspfetch
+        push    rbp
+        NEXT
+
+        defcode "rsp!", 0,      rspstore
+        pop     rbp
+        NEXT
+
+        defcode "rdpro",        0,      rdrop
+        add     rbp,    CELLL
+        NEXT
+
+
+        defcode "emti", 0,      emit
+        pop     rax
+        call    _EMIT
+        NEXT
+_EMIT:
+        push    rsi
+        mov     rdi,    1            ; 1st param: stdout
+        mov     [emit_scratch], al   ; 1バイトのバッファにセット
+        mov     rsi,    emit_scratch ; 2nd param: address
+        mov     rdx,    1            ; 3rd param: length 1
+        mov     rax,    __NR_write   ; write syscall
+        syscall
+        pop     rsi
+        ret
+
+        section .data
+emit_scratch:
+        db      1
+
 
         defcode "key",  0,      key
         call    _KEY
@@ -521,11 +633,6 @@ _NUMBER:
         mov     [var_here],     rdi
         NEXT
 
-        defcode "lit", 0, lit
-        lodsq                   ; rax = [rsi++]
-        push    rax             ; リテラルをスタックにプッシュ
-        NEXT
-
         defcode ",", 0, comma
         pop     rax             ; Code pointer to store.
         call    _COMMA
@@ -536,27 +643,22 @@ _COMMA:
         mov     [var_here],      rdi ; Update HERE(incremented)
         ret
 
-        defcode ">r",   0,      tor
-        pop     rax
-        PUSHRSP rax
+        defcode "[",    F_IMMED,        lbrac
+        xor     rax,    rax
+        mov     [var_state],    rax ; state = 0 immediate mode
         NEXT
 
-        defcode "r>",   0,      FROMR
-        POPRSP  rax
-        push    rax
+        defcode "]",    F_IMMED,        rbrac
+        mov     qword [var_state],      1 ; state = 1 compile mode
         NEXT
 
-        defcode "rsp@", 0,      rspfetch
-        push    rbp
-        NEXT
 
-        defcode "rsp!", 0,      rspstore
-        pop     rbp
-        NEXT
+        defword ":",    0,      colon
+        dq      _WORD
+        dq      create
+        ;; TODO どうやって nop nop nop call _ENTER を埋め込むんだろう？
 
-        defcode "rdpro",        0,      rdrop
-        add     rbp,    CELLL
-        NEXT
+
 
         defcode "branch",       0,      branch
         add     rsi,    [rsi]   ; オフセットを instruction pointer に足す。
@@ -706,7 +808,7 @@ _start:
         cld                              ; DF(ディレクションフラグ)をクリア
 	mov     rbp,    return_stack_top ; リターンスタック初期化
         call    set_up_data_segment      ; メモリのアロケート
-        ;; mov     rsi,    entry_point
+        ;;mov     rsi,    entry_point
         mov     rsi,    cold_start
         NEXT
 
