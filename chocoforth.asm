@@ -39,7 +39,8 @@ bits 64
 
 %macro defword 3                ; name flags label
 %strlen namelen %1
-section .rodata
+;;section .rodata
+section .text
 align 8
 global name_%3
 name_%3:
@@ -56,7 +57,8 @@ global  %3
 
 %macro defcode 3                ; name flags label
         %strlen namelen %1
-        section .rodata
+        ;;section .rodata
+        section .text
         align 8
         global name_%3
 name_%3:
@@ -653,11 +655,33 @@ _COMMA:
         NEXT
 
 
+
         defword ":",    0,      colon
         dq      _WORD
         dq      create
         ;; TODO どうやって nop nop nop call _ENTER を埋め込むんだろう？
+        dq      lit
+        nop
+        nop
+        nop
+        call _ENTER
+        dq      comma
+        dq      latest, fetch, hidden
+        dq      rbrac
+        dq      exit
 
+        defword ";",    F_IMMED,        semicolon
+        dq      lit, exit, comma
+        dq      latest, fetch, hidden
+        dq      lbrac
+        dq      exit
+
+
+        defcode "hidden",       0,      hidden
+        pop     rdi
+        add     rdi,    CELLL
+        xor     byte [rdi],     F_HIDDEN
+        NEXT
 
 
         defcode "branch",       0,      branch
