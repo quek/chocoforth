@@ -1,8 +1,9 @@
-double_hello
+mamimumemo
 
-: triple_hello
-    double_hello hello ;
+: hello_x_3
+    hello ;
+hello_x_3
 
-triple_hello
-
-
+: one
+    49 ;
+one emit

@@ -67,7 +67,6 @@ name_%3:
         db      %2
         db      namelen
         db      %1
-        ;;section .text
         align 8
         global %3
 %3:
@@ -104,6 +103,16 @@ _ENTER:
 ;;        mov     rsi,    rbx
 ;;        jmp     [rax]
 ;;
+%macro p 0
+        mov     r13,    rsi        ; rsi を退避
+        pop     rdx                ; 文字列の長さ
+        pop     rsi                ; 文字列のアドレス
+        mov     rax,    __NR_write ; 出力システムコール
+        mov     rdi,    1          ; 標準出力
+        syscall                    ; システムコール実行
+        mov     rsi,    r13        ; rsi を復元
+%endmacro
+
 
         defvar  "state",        0,      state,  0
         defvar  "here",         0,      here,   0
@@ -423,7 +432,7 @@ _ENTER:
         NEXT
 
 
-        defcode "emti", 0,      emit
+        defcode "emit", 0,      emit
         pop     rax
         call    _EMIT
         NEXT
@@ -478,14 +487,15 @@ _KEY:
 
         defcode "word", 0,      _WORD
         call    __WORD
-        push     rdi            ; push word name address
+        push    rdi             ; push word name address
         push    rcx             ; push word name length
+        NEXT
 __WORD:
 .L1:
         call    _KEY            ; get next key, returned in rax
         cmp     rax,    '\\'    ; start of a comment?
         je      .L3             ; if so, skip the comment
-        cmp     rax,    ' '     ; is blank?
+        cmp     rax,    ' '     ; rax <= ' '(0x20)?
         jbe     .L1             ; if so, keep looking
         ;; word を word_buffer に
         mov     rdi, word_buffer
@@ -521,7 +531,7 @@ _FIND:
         je      .NOT_FOUND
         ;; compare the length
         xor     rax,    rax
-        mov     al,     [rdx+8]  ; flags
+        mov     al,     byte [rdx+8]  ; flags
         and     al,     F_HIDDEN ; hidden?
         jnz     .NEXT_LINK       ; if so, next word
         mov     al,     [rdx+9]  ; Get length.
@@ -558,6 +568,7 @@ _TCFA:
         xor     rax,    rax
         add     rdi,    9       ; link と flags をスキップ
         mov     al,     [rdi]   ; ワード名の長さを取得
+        inc     rdi             ; length 分進む
         add     rdi,    rax     ; ワード名をスキップ
         add     rdi,    7       ; 8バイトアライン
         and     rdi,    ~7
@@ -655,7 +666,6 @@ _COMMA:
         NEXT
 
 
-
         defword ":",    0,      colon
         dq      _WORD
         dq      create
@@ -702,8 +712,13 @@ _COMMA:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; テスト用コード
         defcode "message", 0, message
-        push    msg
-        push    len
+        push    msg_hello
+        push    msg_hello_len
+        NEXT
+
+        defcode "message_mamimumemo", 0, message_mamimumemo
+        push    msg_mamimumemo
+        push    msg_mamimumemo_len
         NEXT
 
         defcode "system_exit", 0, system_exit
@@ -724,6 +739,11 @@ _COMMA:
 
         defword "hello", 0, hello
         dq      message
+        dq      say
+        dq      exit
+
+        defword "mamimumemo", 0, mamimumemo
+        dq      message_mamimumemo
         dq      say
         dq      exit
 
@@ -751,7 +771,6 @@ _COMMA:
         mov     rdi,    rax
         xor     rax,    rax
         mov     al,     [rdi + 8] ; Get flags.
-        push    rax
         push    rax               ; Just save it for new.
         call    _TCFA             ; Returns rax = flags
         pop     rax
@@ -840,10 +859,12 @@ _start:
         section .data
         align 8
 
-msg:
-        db 'Hello World!', 20h
+msg_hello:
+        db 'Hello World!', 0ah
+	msg_hello_len equ $ - msg_hello
+msg_mamimumemo:
         db 'まみむめも♪', 0ah
-	len equ $ -msg
+	msg_mamimumemo_len equ $ - msg_mamimumemo
 
 errmsg:
         db "パース エラー: "
@@ -852,6 +873,9 @@ errmsgnl:
         db      0ah
 
 entry_point:
+        dq      lit
+        dq      49
+        dq      emit
         dq      double_hello
         dq      system_exit
 
