@@ -4,6 +4,9 @@ jonesforth
 http://annexia.org/forth
 
 
+p *(char*)($rdi)@3
+p/x *(char*)($rdi-24)@24
+
 %rax Return value
 %rbx Callee saved
 %rcx 4th argument

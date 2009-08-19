@@ -633,12 +633,14 @@ _NUMBER:
         mov     rdi,    [var_here]
         mov     rax,    [var_latest]
         stosq                   ; link を設定
-        mov     cl,     al
+        xor     rax,    rax
+        stosb                   ; flags を設定
+        mov     al,     cl
         stosb                   ; length を設定
-        push    rsi
-        mov     rsi,    rbx
+        push    rsi             ; rsi 退避
+        mov     rsi,    rdx     ; address of name
         rep     movsb           ; name を設定
-        pop     rsi
+        pop     rsi             ; rsi 復元
         add     rdi,    7       ; align 8
         and     rdi,    ~7
         mov     rax,    [var_here]
