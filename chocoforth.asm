@@ -672,11 +672,14 @@ _COMMA:
         dq      _WORD
         dq      create
         ;; TODO どうやって nop nop nop call _ENTER を埋め込むんだろう？
+        ;; あらかじめ mov r15, _ENTER してある。
         dq      lit
         nop
         nop
         nop
-        call _ENTER
+        nop
+        nop
+        call    r15
         dq      comma
         dq      latest, fetch, hidden
         dq      rbrac
@@ -850,6 +853,7 @@ section .text
 
 global _start
 _start:
+        mov     r15,    _ENTER
         cld                              ; DF(ディレクションフラグ)をクリア
 	mov     rbp,    return_stack_top ; リターンスタック初期化
         call    set_up_data_segment      ; メモリのアロケート
