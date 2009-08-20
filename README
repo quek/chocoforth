@@ -26,10 +26,20 @@ p/x *(char*)($rdi-24)@24
 
 
 <<Direct Threaded Code>>
-DOUBLE:
+mov      r15,     _ENTER
+
+_ENTER:
         PUSHRSP rsi
-        mov     rsi,    .code + 8
-        jmp     .code
+        pop     rsi
+        NEXT
+
+DOUBLE:
+        nop
+        nop
+        nop
+        nop
+        nop
+        call    r15
 .code:
         DUP
         PLUS
