@@ -114,56 +114,56 @@ _ENTER:
 %endmacro
 
 
-        defvar  "state",        0,      state,  0
-        defvar  "here",         0,      here,   0
-        defvar  "latest",       0,      latest, name_syscall0
-        defvar  "s0",           0,      sz,     0
-        defvar  "base",         0,      base,   10
+        defvar  "STATE",        0,      state,  0
+        defvar  "HERE",         0,      here,   0
+        defvar  "LATEST",       0,      latest, name_syscall0
+        defvar  "S0",           0,      sz,     0
+        defvar  "BASE",         0,      base,   10
 
-        defconst        "r0",           0,      rz,             return_stack_top
-        defconst        "f_immed",      0,      f_immed,        F_IMMED
-        defconst        "f_hidden",     0,      f_hidden,       F_HIDDEN
+        defconst        "R0",           0,      rz,             return_stack_top
+        defconst        "F_IMMED",      0,      f_immed,        F_IMMED
+        defconst        "F_HIDDEN",     0,      f_hidden,       F_HIDDEN
 
-        defconst "sys_exit", 0, sys_exit, __NR_exit
-	defconst "sys_open", 0, sys_open, __NR_open
-	defconst "sys_close", 0, sys_close, __NR_close
-	defconst "sys_read", 0, sys_read, __NR_read
-	defconst "sys_write", 0, sys_write, __NR_write
-	defconst "sys_creat", 0, sys_creat, __NR_creat
-	defconst "sys_brk", 0, sys_brk, __NR_brk
+        defconst "SYS_EXIT", 0, sys_exit, __NR_exit
+	defconst "SYS_OPEN", 0, sys_open, __NR_open
+	defconst "SYS_CLOSE", 0, sys_close, __NR_close
+	defconst "SYS_READ", 0, sys_read, __NR_read
+	defconst "SYS_WRITE", 0, sys_write, __NR_write
+	defconst "SYS_CREAT", 0, sys_creat, __NR_creat
+	defconst "SYS_BRK", 0, sys_brk, __NR_brk
 
-	defconst "o_rdonly", 0, __o_rdonly, 0
-	defconst "o_wronly", 0, __o_wronly, 1
-	defconst "o_rdwr", 0, __o_rdwr, 2
-	defconst "o_creat", 0, __o_creat, 0100
-	defconst "o_excl", 0, __o_excl, 0200
-	defconst "o_trunc", 0, __o_trunc, 01000
-	defconst "o_append", 0, __o_append, 02000
-	defconst "o_nonblock", 0, __o_nonblock, 04000
+	defconst "O_RDONLY", 0, __o_rdonly, 0
+	defconst "O_WRONLY", 0, __o_wronly, 1
+	defconst "O_RDWR", 0, __o_rdwr, 2
+	defconst "O_CREAT", 0, __o_creat, 0100
+	defconst "O_EXCL", 0, __o_excl, 0200
+	defconst "O_TRUNC", 0, __o_trunc, 01000
+	defconst "O_APPEND", 0, __o_append, 02000
+	defconst "O_NONBLOCK", 0, __o_nonblock, 04000
 
-        defcode "drop", 0,      drop
+        defcode "DROP", 0,      drop
         pop     rax
         NEXT
 
-        defcode "swap", 0,      swap
+        defcode "SWAP", 0,      swap
         pop     rax
         pop     rbx
         push    rax
         push    rbx
         NEXT
 
-        defcode "dup",  0,      dup
+        defcode "DUP",  0,      dup
         mov     rax,    [rsp]
         push    rax
         NEXT
 
-        defcode "over", 0,      over
+        defcode "OVER", 0,      over
         mov     rax,    [rsp+CELLL]
         push    rax
         NEXT
 
         ;; ( x1 x2 x3 -- x2 x3 x1 )
-        defcode "rot",  0,      rot
+        defcode "ROT",  0,      rot
         pop     rax
         pop     rbx
         pop     rcx
@@ -173,7 +173,7 @@ _ENTER:
         NEXT
 
         ;; ( x1 x2 x3 -- x3 x1 x2 )
-        defcode "-rot", 0,      nrot
+        defcode "-ROT", 0,      nrot
         pop     rax
         pop     rbx
         pop     rcx
@@ -182,19 +182,19 @@ _ENTER:
         push    rbx
         NEXT
 
-        defcode "2drop",        0,      twodrop
+        defcode "2DROP",        0,      twodrop
         pop     rax
         pop     rax
         NEXT
 
-        defcode "2dup", 0,      twodup
+        defcode "2DUP", 0,      twodup
         mov     rax,    [rsp]
         mov     rbx,    [rsp + CELLL]
         push    rbx
         push    rax
         NEXT
 
-        defcode "2swap",        0,      twoswap
+        defcode "2SWAP",        0,      twoswap
         pop     rax
         pop     rbx
         pop     rcx
@@ -205,7 +205,7 @@ _ENTER:
         push     rcx
         NEXT
 
-        defcode "?dup", 0,      qdup
+        defcode "?DUP", 0,      qdup
         mov     rax,    [rsp]
         test    rax,    rax
         jz      .L1
@@ -238,7 +238,7 @@ _ENTER:
         push    rax
         NEXT
 
-        defcode "/mod", 0,      divmod
+        defcode "/MOD", 0,      divmod
         xor     rdx,    rdx
         pop     rbx
         pop     rax
@@ -349,26 +349,26 @@ _ENTER:
         push    rax
         NEXT
 
-        defcode "and",  0,      and
+        defcode "AND",  0,      and
         pop     rax
         and     [rsp],  rax
         NEXT
 
-        defcode "or",   0,      or
+        defcode "OR",   0,      or
         pop     rax
         or      [rsp],  rax
         NEXT
 
-        defcode "xor",  0,      xor
+        defcode "XOR",  0,      xor
         pop     rax
         xor     [rsp],  rax
         NEXT
 
-        defcode "invert",       0,      invert
+        defcode "INVERT",       0,      invert
         not     qword [rsp]
         NEXT
 
-        defcode "lit", 0, lit
+        defcode "LIT", 0, lit
         lodsq                   ; rax = [rsi++]
         push    rax             ; リテラルをスタックにプッシュ
         NEXT
@@ -397,42 +397,42 @@ _ENTER:
         sub     [rbx],  rax
         NEXT
 
-        defcode "c!",   0,      storebyte
+        defcode "C!",   0,      storebyte
         pop     rbx
         pop     rax
         mov     byte [rbx],  al
         NEXT
 
-        defcode "c@",   0,      fetchbyte
+        defcode "C@",   0,      fetchbyte
         pop     rbx
         xor     rax,    rax
         mov     al,     [rbx]
         NEXT
 
-        defcode ">r",   0,      tor
+        defcode ">R",   0,      tor
         pop     rax
         PUSHRSP rax
         NEXT
 
-        defcode "r>",   0,      FROMR
+        defcode "R>",   0,      FROMR
         POPRSP  rax
         push    rax
         NEXT
 
-        defcode "rsp@", 0,      rspfetch
+        defcode "RSP@", 0,      rspfetch
         push    rbp
         NEXT
 
-        defcode "rsp!", 0,      rspstore
+        defcode "RSP!", 0,      rspstore
         pop     rbp
         NEXT
 
-        defcode "rdpro",        0,      rdrop
+        defcode "RDPRO",        0,      rdrop
         add     rbp,    CELLL
         NEXT
 
 
-        defcode "emit", 0,      emit
+        defcode "EMIT", 0,      emit
         pop     rax
         call    _EMIT
         NEXT
@@ -452,7 +452,7 @@ emit_scratch:
         db      1
 
 
-        defcode "key",  0,      key
+        defcode "KEY",  0,      key
         call    _KEY
         push    rax
         NEXT
@@ -485,7 +485,7 @@ _KEY:
         syscall
 
 
-        defcode "word", 0,      _WORD
+        defcode "WORD", 0,      _WORD
         call    __WORD
         push    rdi             ; push word name address
         push    rcx             ; push word name length
@@ -516,7 +516,7 @@ __WORD:
         jne     .L3
         jmp     .L1
 
-        defcode "find", 0, find
+        defcode "FIND", 0, find
         pop     rcx             ; rcx = length
         pop     rdi             ; rdi = address
         call    _FIND
@@ -558,7 +558,7 @@ _FIND:
         xor     rax,    rax     ; Return zero to indicate not found.
         ret
 
-        defcode ">cfa", 0, TCFA
+        defcode ">CFA", 0, TCFA
         pop     rdi             ; dictionary entry point
         call    _TCFA
         push    rdi             ; codeword
@@ -574,7 +574,7 @@ _TCFA:
         and     rdi,    ~7
         ret
 
-        defcode "number", 0, number
+        defcode "NUMBER", 0, number
         pop     rcx             ; 文字列長
         pop     rdi             ; 文字列のアドレス
         call    _NUMBER
@@ -627,7 +627,7 @@ _NUMBER:
 .RET:
         ret
 
-        defcode "create", 0, create
+        defcode "CREATE", 0, create
         pop     rcx             ; rcx = length
         pop     rdx             ; rdx = address of name
         mov     rdi,    [var_here]
@@ -691,47 +691,51 @@ _COMMA:
         dq      lbrac
         dq      exit
 
-
-        defcode "hidden",       0,      hidden
+        defcode "HIDDEN",       0,      hidden
         pop     rdi
         add     rdi,    CELLL
         xor     byte [rdi],     F_HIDDEN
         NEXT
 
+        defcode "IMMEDIATE",    F_IMMED,        immediate
+        mov     rdi,    var_latest
+        add     rdi,    CELLL
+        xor     byte[rdi],      F_IMMED
+        NEXT
 
-        defcode "branch",       0,      branch
+        defcode "BRANCH",       0,      branch
         add     rsi,    [rsi]   ; オフセットを instruction pointer に足す。
         NEXT
 
-        defcode "0branch",      0,      zbranch
+        defcode "0BRANCH",      0,      zbranch
         pop     rax
         test    rax,    rax
         jz      branch          ; 0 なら branch へ
         lodsq                   ; 0 でないならオフセットをスキップする
         NEXT
 
-        defcode "exit", 0, exit
+        defcode "EXIT", 0, exit
         POPRSP  rsi
         NEXT
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; テスト用コード
-        defcode "message", 0, message
+        defcode "MESSAGE", 0, message
         push    msg_hello
         push    msg_hello_len
         NEXT
 
-        defcode "message_mamimumemo", 0, message_mamimumemo
+        defcode "MESSAGE_MAMIMUMEMO", 0, message_mamimumemo
         push    msg_mamimumemo
         push    msg_mamimumemo_len
         NEXT
 
-        defcode "system_exit", 0, system_exit
+        defcode "SYSTEM_EXIT", 0, system_exit
 	mov     rax,    __NR_exit ; exit システムコール
 	mov     rdi,     0      ; exit コード
 	syscall                 ; システムコール実行
 
-        defcode "say", 0, say
+        defcode "SAY", 0, say
         mov     r13,    rsi        ; rsi を退避
         pop     rdx                ; 文字列の長さ
         pop     rsi                ; 文字列のアドレス
@@ -742,30 +746,30 @@ _COMMA:
         NEXT
 
 
-        defword "hello", 0, hello
+        defword "HELLO", 0, hello
         dq      message
         dq      say
         dq      exit
 
-        defword "mamimumemo", 0, mamimumemo
+        defword "MAMIMUMEMO", 0, mamimumemo
         dq      message_mamimumemo
         dq      say
         dq      exit
 
-        defword "double_hello", 0, double_hello
+        defword "DOUBLE_HELLO", 0, double_hello
         dq      hello
         dq      hello
         dq      exit
 
 
-        defword "quit", 0, quit
+        defword "QUIT", 0, quit
         dq      rz              ; r0
         dq      rspstore        ; rsp!
         dq      interpret       ; interpret
         dq      branch          ; goto interpret(loop)
         dq      -2 * CELLL
 
-        defcode "interpret", 0, interpret
+        defcode "INTERPRET", 0, interpret
         call    __WORD           ; Returns rcx = length, rdi = pointer to word.
         xor     rax,    rax
         mov     [interpret_is_lit],     rax ; interpret_is_lit をリセット（0）
@@ -837,7 +841,7 @@ _COMMA:
         pop     rsi
         NEXT
 
-        defcode "syscall0", 0, syscall0
+        defcode "SYSCALL0", 0, syscall0
         pop     rax
         syscall
         push    rax
