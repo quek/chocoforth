@@ -493,9 +493,9 @@ _KEY:
 __WORD:
 .L1:
         call    _KEY            ; get next key, returned in rax
-        cmp     rax,    '\\'    ; start of a comment?
+        cmp     al,     0x5c    ; start of a comment('\\'(0x5c)?
         je      .L3             ; if so, skip the comment
-        cmp     rax,    ' '     ; rax <= ' '(0x20)?
+        cmp     al,     0x20    ; rax <= ' '(0x20)?
         jbe     .L1             ; if so, keep looking
         ;; word を word_buffer に
         mov     rdi, word_buffer
@@ -512,7 +512,7 @@ __WORD:
 .L3:
         ;; コメントの読み飛し
         call    _KEY
-        cmp     rax,    '\n'    ; end of line yet?
+        cmp     al,     0x0a    ; end of line yet?
         jne     .L3
         jmp     .L1
 
@@ -839,6 +839,13 @@ _COMMA:
         mov     rax,    __NR_write
         syscall
         pop     rsi
+        NEXT
+
+        defcode "CHAR", 0,      char
+        call    __WORD
+        xor     rax,    rax
+        mov     al,     [rdi]
+        push    rax
         NEXT
 
         defcode "SYSCALL0", 0, syscall0
