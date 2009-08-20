@@ -800,7 +800,7 @@ _COMMA:
         mov     rcx,    [interpret_is_lit]
         test    rcx,    rcx     ; リテラル?
         jz      .END
-        mov     rbx,    rax     ; LIT に続いてリテラル（数値）を ,
+        mov     rax,    rbx     ; LIT に続いてリテラル（数値）を ,
         call    _COMMA
 .END:
         NEXT

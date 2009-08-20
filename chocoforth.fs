@@ -1,9 +1,8 @@
 : one
     49 ;
 one emit
-one emit
+10  emit
 
-: h3
+: triple_hello
     double_hello hello ;
-h3
-
+triple_hello
