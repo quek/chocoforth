@@ -24,6 +24,12 @@ test-if-true
 : test-if-false 0 IF 49 EMIT ELSE 48 EMIT THEN ;
 test-if-false
 
+\ ( "<spaces>name" -- xt ) エラーチェックが必要
+: '
+    WORD FIND >CFA
+;
+
+
 
 : '\n' 10 ;
 : ONE  49 ;
@@ -55,6 +61,3 @@ TRIPLE_HELLO
 : MOD /MOD DROP ;
 : NEGATE
     0 SWAP - ;
-
-
-

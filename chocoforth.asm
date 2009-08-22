@@ -380,12 +380,6 @@ _ENTER:
         push    rax             ; リテラルをスタックにプッシュ
         NEXT
 
-        ;; TODO ( "<spaces>name" -- xt )
-        ;; defcode "'",    0,      tick
-        ;; lodsq                   ; rax = [rsi++]
-        ;; push    rax
-        ;; NEXT
-
         defcode "!",    0,      store
         pop     rbx             ; 変数
         pop     rax             ; 値
@@ -862,7 +856,12 @@ _COMMA:
         push    rax
         NEXT
 
-        defcode "SYSCALL0", 0, syscall0
+        defcode "EXECUTE",      0,      execute
+        pop     rax
+        jmp     rax             ; ジャンプした先のワードの NEXT で戻るので
+                                ; ここに NEXT は不要
+
+        defcode "SYSCALL0",     0,      syscall0
         pop     rax
         syscall
         push    rax
