@@ -374,15 +374,17 @@ _ENTER:
         not     qword [rsp]
         NEXT
 
+        ;; ( -- x )
         defcode "LIT", 0, lit
         lodsq                   ; rax = [rsi++]
         push    rax             ; リテラルをスタックにプッシュ
         NEXT
 
-        defcode "'",    0,      tick
-        lodsq                   ; rax = [rsi++]
-        push    rax
-        NEXT
+        ;; TODO ( "<spaces>name" -- xt )
+        ;; defcode "'",    0,      tick
+        ;; lodsq                   ; rax = [rsi++]
+        ;; push    rax
+        ;; NEXT
 
         defcode "!",    0,      store
         pop     rbx             ; 変数

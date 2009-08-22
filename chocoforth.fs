@@ -1,5 +1,5 @@
 : IF IMMEDIATE
-    ' 0BRANCH ,           \ 偽の場合のジャンプ
+    LIT 0BRANCH ,         \ 偽の場合のジャンプ
     HERE @                \ 偽の場合のジャンプ開始アドレスをスタックに
     0 ,                   \ あとでこの 0 をオフセットで上書く
 ;
@@ -11,7 +11,7 @@
 ;
 
 : ELSE IMMEDIATE
-    ' BRANCH ,                          \ 真の場合のジャンプ
+    LIT BRANCH ,                          \ 真の場合のジャンプ
     HERE @                              \ 真の場合のジャンプ開始位置
     0 ,                                 \ 真の場合のオフセット
     SWAP                                \ IF と ELSE の HERE @ を入れ替え
@@ -19,11 +19,15 @@
     HERE @ SWAP -                       \ 偽だった場合のオフセット
     SWAP !                      \ DUP した IF の HERE @ にオフセットを
 ;
+: test-if-true 1 IF 49 EMIT ELSE 48 EMIT THEN ;
+test-if-true
+: test-if-false 0 IF 49 EMIT ELSE 48 EMIT THEN ;
+test-if-false
 
 
 : '\n' 10 ;
 : ONE  49 ;
-'\n' ONE ONE EMIT EMIT EMIT
+'\n' ONE ONE '\n' EMIT EMIT EMIT EMIT
 
 : TRIPLE_HELLO
     DOUBLE_HELLO HELLO ;
@@ -40,7 +44,7 @@ TRIPLE_HELLO
 : NOT   0= ;
 
 : LITERAL IMMEDIATE
-    ' LIT ,                             \ LIT をコンパイル
+    LIT LIT ,                             \ LIT をコンパイル
     ,                                   \ リテラルをコンパイル
 ;
 
