@@ -249,14 +249,14 @@ _ENTER:
         pop     rbx
         pop     rax
         idiv    rbx
-        push    rbx             ; 剰余 remainder
+        push    rdx             ; 剰余 remainder
         push    rax             ; 商   quotient
         NEXT
 
         defcode "=",    0,      equ
         pop     rax
         pop     rbx
-        cmp     rax,    rbx
+        cmp     rbx,    rax
         sete    al              ; al = 1 if ZF=1
         movzx   rax,    al      ; al -> rax
         push    rax
@@ -265,7 +265,7 @@ _ENTER:
         defcode "<>",   0,      nequ
         pop     rax
         pop     rbx
-        cmp     rax,    rbx
+        cmp     rbx,    rax
         setne   al
         movzx   rax,    al
         push    rax
@@ -274,7 +274,7 @@ _ENTER:
         defcode "<",    0,      lt
         pop     rax
         pop     rbx
-        cmp     rax,    rbx
+        cmp     rbx,    rax
         setl    al
         movzx   rax,    al
         push    rax
@@ -283,7 +283,7 @@ _ENTER:
         defcode ">",    0,      gt
         pop     rax
         pop     rbx
-        cmp     rax,    rbx
+        cmp     rbx,    rax
         setg    al
         movzx   rax,    al
         push    rax
@@ -292,7 +292,7 @@ _ENTER:
         defcode "<=",   0,      le
         pop     rax
         pop     rbx
-        cmp     rax,    rbx
+        cmp     rbx,    rax
         setle   al
         movzx   rax,    al
         push    rax
@@ -301,7 +301,7 @@ _ENTER:
         defcode ">=",   0,      ge
         pop     rax
         pop     rbx
-        cmp     rax,    rbx
+        cmp     rbx,    rax
         setge   al
         movzx   rax,    al
         push    rax
@@ -434,10 +434,18 @@ _ENTER:
         pop     rbp
         NEXT
 
-        defcode "RDPRO",        0,      rdrop
+        defcode "RDROP",        0,      rdrop
         add     rbp,    CELLL
         NEXT
 
+        defcode "DSP@", 0,      dspfetch
+        mov     rax,    rsp
+        push    rax
+        NEXT
+
+        defcode "DSP!", 0,      dspstore
+        pop     rsp
+        NEXT
 
         defcode "EMIT", 0,      emit
         pop     rax
@@ -879,6 +887,7 @@ global _start
 _start:
         mov     r15,    _ENTER
         cld                              ; DF(ディレクションフラグ)をクリア
+        mov     [var_sz],       rsp      ; スタックアドレスの初期値
 	mov     rbp,    return_stack_top ; リターンスタック初期化
         call    set_up_data_segment      ; メモリのアロケート
         ;;mov     rsi,    entry_point
