@@ -96,21 +96,27 @@ _ENTER:
         PUSHRSP rsi
         pop     rsi
         NEXT
-;;        PUSHRSP rsi
-;;        add     rax,    CELLL
-;;        mov     rbx,    rax
-;;        add     rbx,    CELLL
-;;        mov     rsi,    rbx
-;;        jmp     [rax]
-;;
+
 %macro p 0
-        mov     r13,    rsi        ; rsi を退避
-        pop     rdx                ; 文字列の長さ
-        pop     rsi                ; 文字列のアドレス
+        push    rsi
+        push    rdi
+        push    rdx
+        push    rcx
+        push    rax
+        mov     rdx,    rcx        ; 文字列の長さ
+        mov     rsi,    rdi        ; 文字列のアドレス
         mov     rax,    __NR_write ; 出力システムコール
         mov     rdi,    1          ; 標準出力
         syscall                    ; システムコール実行
-        mov     rsi,    r13        ; rsi を復元
+        mov     rsi,    errmsgnl
+        mov     rdx,    1
+        mov     rax,    __NR_write
+        syscall
+        pop     rax
+        pop     rcx
+        pop     rdx
+        pop     rdi
+        pop     rsi
 %endmacro
 
 
@@ -373,16 +379,21 @@ _ENTER:
         push    rax             ; リテラルをスタックにプッシュ
         NEXT
 
+        defcode "'",    0,      tick
+        lodsq                   ; rax = [rsi++]
+        push    rax
+        NEXT
+
         defcode "!",    0,      store
-        pop     rbx
-        pop     rax
-        mov     [rbx],  rax
+        pop     rbx             ; 変数
+        pop     rax             ; 値
+        mov     [rbx],  rax     ; 変数のアドレスに値を
         NEXT
 
         defcode "@",    0,      fetch
-        pop     rbx
-        mov     rax,    [rbx]
-        push    rax
+        pop     rbx             ; 変数
+        mov     rax,    [rbx]   ; 変数のアドレス
+        push    rax             ; をスタックに
         NEXT
 
         defcode "+!",   0,      addstore
@@ -698,7 +709,7 @@ _COMMA:
         NEXT
 
         defcode "IMMEDIATE",    F_IMMED,        immediate
-        mov     rdi,    var_latest
+        mov     rdi,    [var_latest]
         add     rdi,    CELLL
         xor     byte[rdi],      F_IMMED
         NEXT
@@ -771,6 +782,7 @@ _COMMA:
 
         defcode "INTERPRET", 0, interpret
         call    __WORD           ; Returns rcx = length, rdi = pointer to word.
+        ;;p
         xor     rax,    rax
         mov     [interpret_is_lit],     rax ; interpret_is_lit をリセット（0）
         call    _FIND                    ; Returns rax = pointer to header or 0 if not found.
@@ -783,7 +795,7 @@ _COMMA:
         push    rax               ; Just save it for new.
         call    _TCFA             ; Returns rax = flags
         pop     rax
-        and     rax,    F_IMMED ; IMMED フラグがセットされている？
+        and     al,    F_IMMED ; IMMED フラグがセットされている？
         mov     rax,    rdi
         jnz     .EXECUTE        ; IMMED なら実行
         jmp     .FOUND
