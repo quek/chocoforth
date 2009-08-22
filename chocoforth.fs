@@ -11,12 +11,12 @@
 ;
 
 : ELSE IMMEDIATE
-    LIT BRANCH ,                          \ 真の場合のジャンプ
-    HERE @                              \ 真の場合のジャンプ開始位置
-    0 ,                                 \ 真の場合のオフセット
-    SWAP                                \ IF と ELSE の HERE @ を入れ替え
-    DUP                                 \ IF の HERE @ を DUP
-    HERE @ SWAP -                       \ 偽だった場合のオフセット
+    LIT BRANCH ,                \ 真の場合のジャンプ
+    HERE @                      \ 真の場合のジャンプ開始位置
+    0 ,                         \ 真の場合のオフセット
+    SWAP                        \ IF と ELSE の HERE @ を入れ替え
+    DUP                         \ IF の HERE @ を DUP
+    HERE @ SWAP -               \ 偽だった場合のオフセット
     SWAP !                      \ DUP した IF の HERE @ にオフセットを
 ;
 : test-if-true 1 IF 49 EMIT ELSE 48 EMIT THEN ;
@@ -29,6 +29,11 @@ test-if-false
     WORD FIND >CFA
 ;
 
+\ Compilation: ( "<spaces>name" -- ) Run-time: ( -- xt )
+: ['] IMMEDIATE
+    LIT LIT ,                           \ LIT をコンパイル
+    ' ,                                 \ ワードをパースしてコンパイル
+;
 
 
 : '\n' 10 ;
@@ -50,12 +55,18 @@ TRIPLE_HELLO
 : NOT   0= ;
 
 : LITERAL IMMEDIATE
-    LIT LIT ,                             \ LIT をコンパイル
+    LIT LIT ,                           \ LIT をコンパイル
     ,                                   \ リテラルをコンパイル
 ;
 
-: ';' [ CHAR ; ] LITERAL ;
-';' EMIT CR
+: [CHAR] IMMEDIATE
+    LIT LIT ,
+    CHAR ,
+;
+
+: ';'
+    [CHAR] ; ;
+
 
 : / /MOD SWAP DROP ;
 : MOD /MOD DROP ;
