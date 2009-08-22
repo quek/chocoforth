@@ -1,6 +1,9 @@
 LiSP の息抜きにちょっこと Forth でも作ってみる。
 
-jonesforth
+Direct threaded code
+64bit Linux
+
+もとは jonesforth です。
 http://annexia.org/forth
 
 
