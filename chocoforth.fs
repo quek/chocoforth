@@ -1,3 +1,7 @@
+: TRUE  1 ;
+: FALSE 0 ;
+: NOT   0= ;
+
 : IF IMMEDIATE
     LIT 0BRANCH ,         \ 偽の場合のジャンプ
     HERE @                \ 偽の場合のジャンプ開始アドレスをスタックに
@@ -35,40 +39,118 @@ test-if-false
     ' ,                                 \ ワードをパースしてコンパイル
 ;
 
-
-: '\n' 10 ;
-: ONE  49 ;
-'\n' ONE ONE '\n' EMIT EMIT EMIT EMIT
-
-: TRIPLE_HELLO
-    DOUBLE_HELLO HELLO ;
-TRIPLE_HELLO
-
-: BL 32 ;
-: CR
-    '\n' EMIT ;
-: SPACE
-    BL EMIT ;
-
-: TRUE  1 ;
-: FALSE 0 ;
-: NOT   0= ;
-
-: LITERAL IMMEDIATE
-    LIT LIT ,                           \ LIT をコンパイル
-    ,                                   \ リテラルをコンパイル
+\ 6.2.2530 [COMPILE] Compilation: ( "<spaces>name" -- )
+: [COMPILE] IMMEDIATE
+    ' ,
 ;
+
+: RECURSE IMMEDIATE
+    LATEST @                            \ コンパイル中のワードの
+    >CFA                                \ codewordを
+    ,                                   \ コンパイルする。
+;
+: fib
+    DUP 1 > IF
+        DUP 1- RECURSE SWAP 2- RECURSE
+    THEN
+;
+
+\ 6.1.0760 BEGIN Compilation: ( C: -- dest ) Run-time: ( -- )
+: BEGIN IMMEDIATE
+    HERE @                              \ ループの先頭アドレスをスタックに
+;
+
+: UNTIL IMMEDIATE
+    LIT 0BRANCH ,
+    HERE @ -
+    ,
+;
+
+: AGAIN IMMEDIATE
+    LIT BRANCH ,
+    HERE @ -
+    ,
+;
+
+: WHILE IMMEDIATE
+    LIT 0BRANCH ,
+    HERE @
+    0 ,
+;
+
+: REPEAT IMMEDIATE
+    LIT BRANCH ,
+    SWAP
+    HERE @ - ,
+    DUP
+    HERE @ SWAP -
+    SWAP !
+;
+
+: UNLESS IMMEDIATE
+    LIT NOT ,
+    [COMPILE] IF
+;
+: test-unless
+    0 UNLESS
+    49 EMIT
+ELSE
+    50 EMIT
+THEN
+    1 UNLESS
+    49 EMIT
+ELSE
+    50 EMIT
+THEN
+;
+test-unless
 
 : [CHAR] IMMEDIATE
     LIT LIT ,
     CHAR ,
 ;
 
-: ';'
-    [CHAR] ; ;
+\ 6.1.0080 ( ( "ccc<paren>" -- )
+: ( IMMEDIATE
+    1                                   \ ネストの深さ
+    BEGIN
+        KEY
+        DUP [CHAR] ( = IF               \ ネストしたコメントの開始
+            DROP
+            1+                          \ ネスト + 1
+        ELSE
+            [CHAR] ) = IF               \ コメントの終り
+                1-                      \ ネスト - 1
+            THEN
+        THEN
+    DUP 0= UNTIL                        \ ネストが 0 ならおしまい
+    DROP
+;
 
+: LITERAL IMMEDIATE
+    LIT LIT ,                           \ LIT をコンパイル
+    ,                                   \ リテラルをコンパイル
+;
+
+: '\n' 10 ;
+: BL   32 ;
+: CR
+    '\n' EMIT ;
+: SPACE
+    BL EMIT ;
 
 : / /MOD SWAP DROP ;
 : MOD /MOD DROP ;
 : NEGATE
     0 SWAP - ;
+
+
+\ 6.1.0890 CELLS ( n1 -- n2 )
+: CELLS 8 * ;
+
+: TRIPLE_HELLO
+    CR DOUBLE_HELLO HELLO ;
+TRIPLE_HELLO
+
+( MAMIMUMEMO )
+MAMIMUMEMO
