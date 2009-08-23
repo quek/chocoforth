@@ -8,6 +8,9 @@ bits 64
 
         CELLL   EQU     8
 
+        ;; nop x 5 jmp r15
+        DOCOL_CODE      EQU     0xd7ff419090909090
+
 %macro PUSHRSP 1
         lea     rbp,    [rbp - CELLL]
         mov     [rbp],  %1
@@ -23,14 +26,7 @@ bits 64
 	jmp rax
 %endmacro
 
-%macro DOCOL 0
-        nop
-        nop
-        nop
-        call    _ENTER
-        ;;jmp     _ENTER
-        ;;align 8
-%endmacro
+
 
         F_IMMED         equ     0x80
 	F_HIDDEN        equ     0x20
@@ -52,7 +48,7 @@ name_%3:
         align   8
 global  %3
 %3:
-        DOCOL
+        dq      DOCOL_CODE
 %endmacro
 
 %macro defcode 3                ; name flags label
@@ -689,12 +685,7 @@ _COMMA:
         ;; TODO どうやって nop nop nop call _ENTER を埋め込むんだろう？
         ;; あらかじめ mov r15, _ENTER してある。
         dq      lit
-        nop
-        nop
-        nop
-        nop
-        nop
-        call    r15
+        dq      DOCOL_CODE
         dq      comma
         dq      latest, fetch, hidden
         dq      rbrac
@@ -956,7 +947,6 @@ set_up_data_segment:
 	mov     rax,    __NR_brk ;brk
         syscall
 	ret
-
 
 section .bss
         RETURN_STACK_SIZE       EQU     8192

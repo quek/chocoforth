@@ -245,7 +245,7 @@ test-.S
                 OVER C!
                 1+
         REPEAT
-        DROP                            \  " を捨てる。
+        DROP                            \ " を捨てる。
         HERE @ -                        \ 文字列長を計算
         HERE @                          \ 文字列先頭
         SWAP
@@ -275,6 +275,27 @@ S" def" TYPE
 ;
 : ABC ." ABC" ;
 CR ABC ." DEF"
+
+
+: DECIMAL ( -- ) 10 BASE ! ;
+: HEX ( -- ) 16 BASE ! ;
+
+\ nop x 5 jmp r15
+: DOCOL
+    15564230926372212880    \ 0xd7ff419090909090 nop x 5 jmp r15
+;
+
+\ 6.1.0950 CONSTANT
+\ CORE
+: CONSTANT ( x "<spaces>name" -- )
+    WORD                                \ Ansi では BL WORD か？
+    CREATE                              \ 辞書に追加
+    DOCOL ,
+    LIT LIT ,
+    ,
+    LIT EXIT ,
+;
+
 
 ( MAMIMUMEMO )
 CR MAMIMUMEMO
