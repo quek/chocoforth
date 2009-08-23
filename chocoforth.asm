@@ -638,7 +638,7 @@ _NUMBER:
 .RET:
         ret
 
-        defcode "HEAD", 0,      head
+        defcode "HEADER",       0,      header
         pop     rcx             ; rcx = length
         pop     rdx             ; rdx = address of name
         mov     rdi,    [var_here]
@@ -681,7 +681,7 @@ _COMMA:
 
         defword ":",    0,      colon
         dq      _WORD
-        dq      head
+        dq      header
         ;; あらかじめ mov r15, _ENTER してある。
         dq      lit
         dq      DOCOL_CODE

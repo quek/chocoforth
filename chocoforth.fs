@@ -39,7 +39,8 @@ test-if-false
     ' ,                                 \ ワードをパースしてコンパイル
 ;
 
-\ 6.2.2530 [COMPILE] Compilation: ( "<spaces>name" -- )
+\ 6.2.2530 [COMPILE]
+\ Compilation: ( "<spaces>name" -- )
 : [COMPILE] IMMEDIATE
     ' ,
 ;
@@ -285,14 +286,11 @@ CR ABC ." DEF"
     15564230926372212880    \ 0xd7ff419090909090 nop x 5 jmp r15
 ;
 
-: CREATE
-    WORD HEAD
-;
 
 \ 6.1.0950 CONSTANT
 \ CORE
 : CONSTANT ( x "<spaces>name" -- )
-    CREATE            \ 辞書に追加
+    WORD HEADER                         \ 辞書に追加
     DOCOL ,
     LIT LIT ,
     ,
@@ -300,14 +298,22 @@ CR ABC ." DEF"
 ;
 51 CONSTANT san
 CR san san EMIT EMIT
-( DOES> があれば↓できるはずなんだけど。。。
+
+: CREATE
+    WORD HEADER
+;
+: DOES> IMMEDIATE
+;
+( CREATE と DOES> があれば↓できるはずなんだけど。。。 )
 : CONSTANT'
     CREATE
     ,
   DOES>
     @
 ;
-)
+\ 52 CONSTANT' yon
+\ CR yon yon EMIT EMIT
+
 
 ( MAMIMUMEMO )
 CR MAMIMUMEMO
