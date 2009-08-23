@@ -638,7 +638,7 @@ _NUMBER:
 .RET:
         ret
 
-        defcode "CREATE", 0, create
+        defcode "HEAD", 0,      head
         pop     rcx             ; rcx = length
         pop     rdx             ; rdx = address of name
         mov     rdi,    [var_here]
@@ -681,8 +681,7 @@ _COMMA:
 
         defword ":",    0,      colon
         dq      _WORD
-        dq      create
-        ;; TODO どうやって nop nop nop call _ENTER を埋め込むんだろう？
+        dq      head
         ;; あらかじめ mov r15, _ENTER してある。
         dq      lit
         dq      DOCOL_CODE

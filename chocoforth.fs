@@ -285,17 +285,29 @@ CR ABC ." DEF"
     15564230926372212880    \ 0xd7ff419090909090 nop x 5 jmp r15
 ;
 
+: CREATE
+    WORD HEAD
+;
+
 \ 6.1.0950 CONSTANT
 \ CORE
 : CONSTANT ( x "<spaces>name" -- )
-    WORD                                \ Ansi では BL WORD か？
-    CREATE                              \ 辞書に追加
+    CREATE            \ 辞書に追加
     DOCOL ,
     LIT LIT ,
     ,
     LIT EXIT ,
 ;
-
+51 CONSTANT san
+CR san san EMIT EMIT
+( DOES> があれば↓できるはずなんだけど。。。
+: CONSTANT'
+    CREATE
+    ,
+  DOES>
+    @
+;
+)
 
 ( MAMIMUMEMO )
 CR MAMIMUMEMO
