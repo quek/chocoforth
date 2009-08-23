@@ -729,6 +729,32 @@ _COMMA:
         lodsq                   ; 0 でないならオフセットをスキップする
         NEXT
 
+        ;;      LITSTRING
+        ;; rsi  文字列長(n)
+        ;;      文字1
+        ;;      文字2
+        ;;      文字...
+        ;;      文字n
+        ;;      次のワード
+        defcode "LITSTRING",    0,      litstring
+        lodsq        ; 文字列長を取得。rsi は1文字目のアドレスを指す。
+        push    rsi  ; 1文字目のアドレスをスタックに
+        push    rax  ; 文字列長をスタックに
+        add     rsi,    rax     ; 文字列長を足して次のワードへ
+        add     rsi,    CELLL-1   ; align 8
+        and     rsi,    ~(CELLL-1)
+        NEXT
+
+        defcode "TYPE", 0,      type
+        mov     r13,    rsi
+        mov     rdi,    1          ; 1st param: 標準出力
+        pop     rdx                ; 3rd paarm: 文字列の長さ
+        pop     rsi                ; 2nd param: 文字列のアドレス
+        mov     rax,    __NR_write ; 出力システムコール
+        syscall                    ; システムコール実行
+        mov     rsi,    r13
+        NEXT
+
         defcode "EXIT", 0, exit
         POPRSP  rsi
         NEXT
@@ -750,25 +776,14 @@ _COMMA:
 	mov     rdi,     0      ; exit コード
 	syscall                 ; システムコール実行
 
-        defcode "SAY", 0, say
-        mov     r13,    rsi        ; rsi を退避
-        pop     rdx                ; 文字列の長さ
-        pop     rsi                ; 文字列のアドレス
-        mov     rax,    __NR_write ; 出力システムコール
-        mov     rdi,    1          ; 標準出力
-        syscall                    ; システムコール実行
-        mov     rsi,    r13        ; rsi を復元
-        NEXT
-
-
         defword "HELLO", 0, hello
         dq      message
-        dq      say
+        dq      type
         dq      exit
 
         defword "MAMIMUMEMO", 0, mamimumemo
         dq      message_mamimumemo
-        dq      say
+        dq      type
         dq      exit
 
         defword "DOUBLE_HELLO", 0, double_hello
@@ -786,7 +801,7 @@ _COMMA:
 
         defcode "INTERPRET", 0, interpret
         call    __WORD           ; Returns rcx = length, rdi = pointer to word.
-        ;;p
+        ;; p
         xor     rax,    rax
         mov     [interpret_is_lit],     rax ; interpret_is_lit をリセット（0）
         call    _FIND                    ; Returns rax = pointer to header or 0 if not found.

@@ -195,6 +195,86 @@ CR -123 .
 ;
 test-.S
 
+\ 6.1.0706 ALIGNED
+\ CORE
+: ALIGNED ( addr -- a-addr )
+    1 CELLS 1- +
+    1 CELLS 1- INVERT AND                    \ (addr + 7) & ~7)
+;
+
+\ 6.1.0705 ALIGN
+\ CORE
+: ALIGN	( -- )
+    HERE @ ALIGNED HERE !
+;
+
+\ 6.1.0860 C,
+\ c-comma CORE
+: C, ( char -- )
+    HERE @ C!
+    1 HERE +!
+;
+
+\ 6.1.2165 S"
+\ s-quote CORE
+\ Compilation: ( "ccc<quote>" -- )
+\ Run-time:    ( -- c-addr u )
+: S" IMMEDIATE
+    STATE @ IF                          \ コンパイル中?
+        LIT LITSTRING ,
+        HERE @                          \ 文字列アドレスの開始位置
+        0 ,                             \ ダミーの文字列長
+        BEGIN
+            KEY DUP [CHAR] " <>
+        WHILE
+                C,
+        REPEAT
+        DROP                            \ " を捨てる。
+        DUP                             \ 文字列長のアドレスを DUP
+        HERE @ SWAP -                   \ 文字列長を計算
+        1 CELLS -                       \ 文字列長の分を引く
+        SWAP !                          \ 文字列長をセット
+        ALIGN
+    ELSE
+        \ ここからは IMMEDIATE モードの場合
+        \ HERE は更新しないので、HERE を更新するワードで上書きされる。
+        HERE @                          \ 文字列先頭
+        BEGIN
+            KEY DUP [CHAR] " <>
+        WHILE
+                OVER C!
+                1+
+        REPEAT
+        DROP                            \  " を捨てる。
+        HERE @ -                        \ 文字列長を計算
+        HERE @                          \ 文字列先頭
+        SWAP
+    THEN
+;
+: abc S" abc" ;
+CR abc TYPE
+S" def" TYPE
+
+\ 6.1.0190 ." 
+\ dot-quote CORE 
+\ Compilation: ( "ccc<quote>" -- )
+\ Run-time: ( -- )
+: ." IMMEDIATE
+    STATE @ IF
+        [COMPILE] S"
+        LIT TYPE ,
+    ELSE
+        BEGIN
+            KEY DUP [CHAR] " = IF
+                DROP
+                EXIT
+            THEN
+            EMIT
+        AGAIN
+    THEN
+;
+: ABC ." ABC" ;
+CR ABC ." DEF"
 
 ( MAMIMUMEMO )
 CR MAMIMUMEMO
