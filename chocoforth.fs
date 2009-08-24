@@ -281,39 +281,63 @@ CR ABC ." DEF"
 : DECIMAL ( -- ) 10 BASE ! ;
 : HEX ( -- ) 16 BASE ! ;
 
-\ nop x 5 jmp r15
-: DOCOL
-    15564230926372212880    \ 0xd7ff419090909090 nop x 5 jmp r15
+
+
+: doLIST
+    15564230926372212880    \ 0xd7ff419090909090 nop x 5 call r15
 ;
 
+: doCREATE
+    15492173332334284944         \ 0xd6ff419090909090 nop x 5 call r14
+;
+
+\ 6.1.1000 CREATE
+\ CORE ( "<spaces>name" -- ) name Execution: ( -- a-addr )
+: CREATE
+    WORD HEADER
+    doCREATE ,
+    0 ,                  \ DOES> がある場合は (DOES>) で書き換えられる。
+;
+
+: (DOES>)
+    R>                                  \ DOES> で COCOL , したころを
+    LATEST @ >CFA 1 CELLS +             \ CREATE で 0 , したとろこに
+    !                                   \ セットする。
+;
+
+\ 6.1.1250 DOES>
+\ does CORE
+: DOES> IMMEDIATE
+    LIT (DOES>) ,
+    doLIST ,                             \ DOES> の後ろを実行。
+;
 
 \ 6.1.0950 CONSTANT
 \ CORE
 : CONSTANT ( x "<spaces>name" -- )
-    WORD HEADER                         \ 辞書に追加
-    DOCOL ,
-    LIT LIT ,
-    ,
-    LIT EXIT ,
-;
-51 CONSTANT san
-CR san san EMIT EMIT
-
-: CREATE
-    WORD HEADER
-;
-: DOES> IMMEDIATE
-;
-( CREATE と DOES> があれば↓できるはずなんだけど。。。 )
-: CONSTANT'
     CREATE
     ,
-  DOES>
-    @
+    DOES>
+      @
 ;
-\ 52 CONSTANT' yon
-\ CR yon yon EMIT EMIT
+( : yon doCREATE 0 52 )
+CR
+CHAR 4 CONSTANT yon
+yon yon EMIT EMIT
 
+
+\ 6.1.2410 VARIABLE
+\ CORE ( "<spaces>name" -- ) name Execution: ( -- a-addr )
+: VARIABLE
+    CREATE
+    0 ,
+;
+CR
+VARIABLE var1
+CHAR a var1 !
+var1 @ EMIT
+CHAR b var1 !
+var1 @ EMIT
 
 ( MAMIMUMEMO )
 CR MAMIMUMEMO

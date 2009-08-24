@@ -8,7 +8,7 @@ bits 64
 
         CELLL   EQU     8
 
-        ;; nop x 5 jmp r15
+        ;; nop x 5 call r15
         DOCOL_CODE      EQU     0xd7ff419090909090
 
 %macro PUSHRSP 1
@@ -88,10 +88,22 @@ section .text
 
 align   8
 
-_ENTER:
+_doLIST:
         PUSHRSP rsi
         pop     rsi
         NEXT
+
+_doCREATE:
+        pop     rdi
+        mov     rax,    [rdi]
+        lea     rbx,    [rdi + CELLL]
+        push    rbx
+        test    rax,    rax
+        jnz     .L1
+        NEXT
+.L1:
+        jmp     rax
+
 
 %macro p 0
         push    rsi
@@ -682,7 +694,7 @@ _COMMA:
         defword ":",    0,      colon
         dq      _WORD
         dq      header
-        ;; あらかじめ mov r15, _ENTER してある。
+        ;; あらかじめ mov r15, _doLIST してある。
         dq      lit
         dq      DOCOL_CODE
         dq      comma
@@ -890,7 +902,8 @@ section .text
 
 global _start
 _start:
-        mov     r15,    _ENTER
+        mov     r15,    _doLIST
+        mov     r14,    _doCREATE
         cld                              ; DF(ディレクションフラグ)をクリア
         mov     [var_sz],       rsp      ; スタックアドレスの初期値
 	mov     rbp,    return_stack_top ; リターンスタック初期化
