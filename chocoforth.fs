@@ -1,33 +1,3 @@
-: TRUE  1 ;
-: FALSE 0 ;
-: NOT   0= ;
-
-: IF IMMEDIATE
-    LIT 0BRANCH ,         \ 偽の場合のジャンプ
-    HERE @                \ 偽の場合のジャンプ開始アドレスをスタックに
-    0 ,                   \ あとでこの 0 をオフセットで上書く
-;
-
-: THEN IMMEDIATE
-    DUP                               \ IF での HERE @ を DUP
-    HERE @ SWAP -                     \ オフセットを計算
-    SWAP !                            \ IF での HERE @ に オフセットを
-;
-
-: ELSE IMMEDIATE
-    LIT BRANCH ,                \ 真の場合のジャンプ
-    HERE @                      \ 真の場合のジャンプ開始位置
-    0 ,                         \ 真の場合のオフセット
-    SWAP                        \ IF と ELSE の HERE @ を入れ替え
-    DUP                         \ IF の HERE @ を DUP
-    HERE @ SWAP -               \ 偽だった場合のオフセット
-    SWAP !                      \ DUP した IF の HERE @ にオフセットを
-;
-: test-if-true 1 IF 49 EMIT ELSE 48 EMIT THEN ;
-test-if-true
-: test-if-false 0 IF 49 EMIT ELSE 48 EMIT THEN ;
-test-if-false
-
 \ ( "<spaces>name" -- xt ) エラーチェックが必要
 : '
     WORD FIND >CFA
@@ -45,6 +15,37 @@ test-if-false
     ' ,
 ;
 
+: TRUE  1 ;
+: FALSE 0 ;
+: NOT   0= ;
+
+: IF IMMEDIATE
+    ['] 0BRANCH ,         \ 偽の場合のジャンプ
+    HERE @                \ 偽の場合のジャンプ開始アドレスをスタックに
+    0 ,                   \ あとでこの 0 をオフセットで上書く
+;
+
+: THEN IMMEDIATE
+    DUP                               \ IF での HERE @ を DUP
+    HERE @ SWAP -                     \ オフセットを計算
+    SWAP !                            \ IF での HERE @ に オフセットを
+;
+
+: ELSE IMMEDIATE
+    ['] BRANCH ,                \ 真の場合のジャンプ
+    HERE @                      \ 真の場合のジャンプ開始位置
+    0 ,                         \ 真の場合のオフセット
+    SWAP                        \ IF と ELSE の HERE @ を入れ替え
+    DUP                         \ IF の HERE @ を DUP
+    HERE @ SWAP -               \ 偽だった場合のオフセット
+    SWAP !                      \ DUP した IF の HERE @ にオフセットを
+;
+: test-if-true 1 IF 49 EMIT ELSE 48 EMIT THEN ;
+test-if-true
+: test-if-false 0 IF 49 EMIT ELSE 48 EMIT THEN ;
+test-if-false
+
+
 : RECURSE IMMEDIATE
     LATEST @                            \ コンパイル中のワードの
     >CFA                                \ codewordを
@@ -57,25 +58,25 @@ test-if-false
 ;
 
 : UNTIL IMMEDIATE
-    LIT 0BRANCH ,
+    ['] 0BRANCH ,
     HERE @ -
     ,
 ;
 
 : AGAIN IMMEDIATE
-    LIT BRANCH ,
+    ['] BRANCH ,
     HERE @ -
     ,
 ;
 
 : WHILE IMMEDIATE
-    LIT 0BRANCH ,
+    ['] 0BRANCH ,
     HERE @
     0 ,
 ;
 
 : REPEAT IMMEDIATE
-    LIT BRANCH ,
+    ['] BRANCH ,
     SWAP
     HERE @ - ,
     DUP
@@ -84,7 +85,7 @@ test-if-false
 ;
 
 : UNLESS IMMEDIATE
-    LIT NOT ,
+    ['] NOT ,
     [COMPILE] IF
 ;
 : test-unless
@@ -102,7 +103,7 @@ THEN
 test-unless
 
 : [CHAR] IMMEDIATE
-    LIT LIT ,
+    ['] LIT ,
     CHAR ,
 ;
 
@@ -124,7 +125,7 @@ test-unless
 ;
 
 : LITERAL IMMEDIATE
-    LIT LIT ,                           \ LIT をコンパイル
+    ['] LIT ,                           \ LIT をコンパイル
     ,                                   \ リテラルをコンパイル
 ;
 
@@ -222,7 +223,7 @@ test-.S
 \ Run-time:    ( -- c-addr u )
 : S" IMMEDIATE
     STATE @ IF                          \ コンパイル中?
-        LIT LITSTRING ,
+        ['] LITSTRING ,
         HERE @                          \ 文字列アドレスの開始位置
         0 ,                             \ ダミーの文字列長
         BEGIN
@@ -263,7 +264,7 @@ S" def" TYPE
 : ." IMMEDIATE
     STATE @ IF
         [COMPILE] S"
-        LIT TYPE ,
+        ['] TYPE ,
     ELSE
         BEGIN
             KEY DUP [CHAR] " = IF
@@ -308,7 +309,7 @@ CR ABC ." DEF"
 \ 6.1.1250 DOES>
 \ does CORE
 : DOES> IMMEDIATE
-    LIT (DOES>) ,
+    ['] (DOES>) ,
     doLIST ,                             \ DOES> の後ろを実行。
 ;
 
