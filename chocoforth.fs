@@ -15,6 +15,11 @@
     ' ,
 ;
 
+: LITERAL IMMEDIATE
+    ['] LIT ,                           \ LIT をコンパイル
+    ,                                   \ リテラルをコンパイル
+;
+
 : TRUE  1 ;
 : FALSE 0 ;
 : NOT   0= ;
@@ -122,11 +127,6 @@ test-unless
         THEN
     DUP 0= UNTIL                        \ ネストが 0 ならおしまい
     DROP
-;
-
-: LITERAL IMMEDIATE
-    ['] LIT ,                           \ LIT をコンパイル
-    ,                                   \ リテラルをコンパイル
 ;
 
 : '\n' 10 ;
@@ -301,7 +301,7 @@ CR ABC ." DEF"
 ;
 
 : (DOES>)
-    R>                                  \ DOES> で COCOL , したころを
+    R>                                  \ DOES> の次の rsi を
     LATEST @ >CFA 1 CELLS +             \ CREATE で 0 , したとろこに
     !                                   \ セットする。
 ;
@@ -326,7 +326,6 @@ CR
 CHAR 4 CONSTANT yon
 yon yon EMIT EMIT
 
-
 \ 6.1.2410 VARIABLE
 \ CORE ( "<spaces>name" -- ) name Execution: ( -- a-addr )
 : VARIABLE
@@ -339,6 +338,53 @@ CHAR a var1 !
 var1 @ EMIT
 CHAR b var1 !
 var1 @ EMIT
+
+\ 6.2.2405 VALUE 
+\ CORE EXT ( x "<spaces>name" -- ) name Execution: ( -- x )
+: VALUE
+    CREATE
+    ,
+    DOES>
+      @
+;
+
+\ 6.2.2295 TO
+\ CORE EXT
+\ Interpretation: ( x "<spaces>name" -- )
+\ Compilation: ( "<spaces>name" -- )
+\ Run-time: ( x -- )
+: TO IMMEDIATE
+    WORD
+    FIND
+    >CFA
+    2 CELLS +                           \ doCREATE, (DOES>)
+    STATE @ IF
+        ['] LIT ,
+        ,
+        ['] ! ,
+    ELSE
+        !
+    THEN
+;
+CR
+CHAR A VALUE val1
+val1 EMIT
+CHAR B TO val1
+val1 EMIT
+: test-value
+    [CHAR] C TO val1
+    val1 EMIT
+;
+test-value
+
+
+\ 6.1.0710 ALLOT
+\ CORE
+: ALLOT ( n -- )
+    HERE +!
+;
+
+
 
 ( MAMIMUMEMO )
 CR MAMIMUMEMO
