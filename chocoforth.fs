@@ -385,6 +385,16 @@ test-value
 ;
 
 
+\ 11.6.1.2054 R/O
+: R/O ( -- fam )
+    O_RDONLY
+;
+
+\ 11.6.1.2056 R/W
+: R/W
+    O_RDWR
+;
+
 
 ( MAMIMUMEMO )
 CR MAMIMUMEMO
