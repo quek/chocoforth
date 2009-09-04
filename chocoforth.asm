@@ -424,6 +424,15 @@ _doCREATE:
         mov     al,     [rbx]
         NEXT
 
+        defcode "CMOVE",        0,      cmove
+        mov     r13,    rsi
+        pop     rcx             ; 長さ
+        pop     rdi             ; コピー先
+        pop     rsi             ; コピー元
+        rep     movsb           ; コピー
+        mov     rsi,    r13
+        NEXT
+
         defcode ">R",   0,      tor
         pop     rax
         PUSHRSP rax
@@ -885,6 +894,34 @@ _COMMA:
         pop     rax
         jmp     rax             ; ジャンプした先のワードの NEXT で戻るので
                                 ; ここに NEXT は不要
+
+        defcode "SYSCALL3",     0,      syscall3
+        pop     rax
+        pop     rdi
+        mov     r13,    rsi
+        pop     rsi
+        pop     rdx
+        syscall
+        push    rax
+        mov     rsi,    r13
+        NEXT
+
+        defcode "SYSCALL2",     0,      syscall2
+        pop     rax
+        pop     rdi
+        mov     r13,    rsi
+        pop     rsi
+        syscall
+        push    rax
+        mov     rsi,    r13
+        NEXT
+
+        defcode "SYSCALL1",     0,      syscall1
+        pop     rax
+        pop     rdi
+        syscall
+        push    rax
+        NEXT
 
         defcode "SYSCALL0",     0,      syscall0
         pop     rax

@@ -395,6 +395,36 @@ test-value
     O_RDWR
 ;
 
+: CSTRING ( addr len -- c-addr )
+    SWAP OVER           ( len addr len )
+    HERE @ SWAP         ( len addr daddr len )
+    CMOVE               ( len )
+    HERE @ +            ( dattr+len )
+    0 SWAP C!           ( NULL 止め )
+    HERE @              ( 文字列の先頭 )
+;
+
+\ 11.6.1.1970 OPEN-FILE
+: OPEN-FILE ( c-addr u fam -- fileid ior )
+    -ROT
+    CSTRING
+    SYS_OPEN SYSCALL2
+    DUP DUP 0< IF
+        NEGATE
+    ELSE
+        DROP 0
+    THEN
+;
+
+\ 11.6.1.0900 CLOSE-FILE
+: CLOSE-FILE ( fileid -- ior )
+    SYS_CLOSE SYSCALL1
+    NEGATE
+;
+CR S" /etc/passwd" R/O ." OPEN -> " OPEN-FILE .
+CR ." CLOSE -> " CLOSE-FILE .
+
+
 
 ( MAMIMUMEMO )
 CR MAMIMUMEMO
