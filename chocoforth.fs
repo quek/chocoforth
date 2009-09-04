@@ -181,13 +181,15 @@ CR -123 .
 
 : .S
     DSP@                                \ スタックポインタを取得
+    S0 @
+    SWAP
     BEGIN
-        DUP S0 @ <                      \ スタックの底につくまで
+        2DUP >                          \ スタックの底につくまで
     WHILE
             DUP @ U.                    \ 中身をプリント
             1 CELLS +                   \ 8 バイト移動
     REPEAT
-    DROP
+    2DROP
 ;
 : test-.S
     CR 10 9 8 7 6 5 4 3 2 1 .S
@@ -384,6 +386,8 @@ test-value
     HERE +!
 ;
 
+\ 6.2.2000 PAD
+VARIABLE PAD 1024 ALLOT
 
 \ 11.6.1.2054 R/O
 : R/O ( -- fam )
@@ -421,7 +425,21 @@ test-value
     SYS_CLOSE SYSCALL1
     NEGATE
 ;
+
+\ 11.6.1.2080 READ-FILE
+: READ-FILE ( c-addr u1 fileid -- u2 ior )
+    ROT SWAP    ( u1 c-addr fileid )
+    SYS_READ
+    SYSCALL3    ( u2 )
+    DUP         ( u2 u2 )
+    DUP 0< IF
+        NEGATE  ( u2 errno )
+    ELSE
+        DROP 0  ( u2 0 )
+    THEN
+;
 CR S" /etc/passwd" R/O ." OPEN -> " OPEN-FILE .
+CR DUP PAD 10 ROT ."READ-FILE -> " READ-FILE . PAD SWAP CR TYPE
 CR ." CLOSE -> " CLOSE-FILE .
 
 
