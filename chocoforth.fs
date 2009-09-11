@@ -410,9 +410,9 @@ VARIABLE PAD 1024 ALLOT
 
 \ 11.6.1.1970 OPEN-FILE
 : OPEN-FILE ( c-addr u fam -- fileid ior )
-    -ROT
-    CSTRING
-    SYS_OPEN SYSCALL2
+    -ROT                ( fam c-addr u )
+    CSTRING             ( fam c-addr )
+    SYS_OPEN SYSCALL2   ( rax )
     DUP DUP 0< IF
         NEGATE
     ELSE
@@ -442,6 +442,12 @@ CR S" /etc/passwd" R/O ." OPEN -> " OPEN-FILE .
 CR DUP PAD 10 ROT ."READ-FILE -> " READ-FILE . PAD SWAP CR TYPE
 CR ." CLOSE -> " CLOSE-FILE .
 
+\ 11.6.1.2090 READ-LINE
+: READ-LINE ( c-addr u1 fileid -- u2 flag ior )
+    >R OVER 1 R>        ( c-addr u1 c-addr 1 fileid )
+    READ-FILE           ( c-addr u1 u2 ior )
+    TODO
+;
 
 
 ( MAMIMUMEMO )
@@ -454,11 +460,7 @@ CR MAMIMUMEMO
         DUP 1- RECURSE SWAP 2 - RECURSE +
     THEN
 ;
-CR 1 fib .
-CR 2 fib .
-CR 3 fib .
-CR 4 fib .
-CR 5 fib .
 CR 10 fib .
 
 CR HELLO
+CR ." ok" CR
